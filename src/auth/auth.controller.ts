@@ -8,12 +8,17 @@ import {
   Body,
   InternalServerErrorException,
   HttpCode,
+  Put,
 } from "@nestjs/common";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { AuthenticatedGuard } from "./guards/authenticated.guard";
 import { UsersService } from "src/users/users.service";
 import { ZodValidationPipe } from "src/shared/pipes/ZodValidationPipe";
-import { UserRegisterDto, UserRegisterSchema } from "./dtos/UserRegisterDto";
+import { RegisterUserDto, RegisterUserSchema } from "./dtos/UserRegisterDto";
+import { ChangePasswordDto, ChangePasswordSchema } from "./dtos/ChangePasswordDto";
+import { AuthUser } from "src/shared/decorators/UserDecorator";
+import { User } from "src/users/entities/user.entity";
+import { number } from "zod";
 
 @Controller("auth")
 export class AuthController {
@@ -38,6 +43,12 @@ export class AuthController {
     });
   }
 
+  @UsePipes(new ZodValidationPipe(RegisterUserSchema))
+  @Post("register")
+  async register(@Body() userDto: RegisterUserDto) {
+    return this.usersService.registerUser(userDto);
+  }
+
   @UseGuards(AuthenticatedGuard)
   @Get("me")
   async getMe(@Request() req) {
@@ -45,9 +56,12 @@ export class AuthController {
     return rest;
   }
 
-  @UsePipes(new ZodValidationPipe(UserRegisterSchema))
-  @Post("register")
-  async register(@Body() userDto: UserRegisterDto) {
-    return this.usersService.registerUser(userDto);
+  @UseGuards(AuthenticatedGuard)
+  @Put("change-password")
+  async changePassword(
+    @Body(new ZodValidationPipe(ChangePasswordSchema)) changePasswordDto: ChangePasswordDto,
+    @AuthUser("id") userId: number,
+  ) {
+    return await this.usersService.changePassword(userId, changePasswordDto);
   }
 }

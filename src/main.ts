@@ -5,7 +5,6 @@ import { ConfigService } from "@nestjs/config";
 import RedisStore from "connect-redis";
 import session from "express-session";
 import passport from "passport";
-import { ZodValidationPipe } from "./shared/pipes/ZodValidationPipe";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

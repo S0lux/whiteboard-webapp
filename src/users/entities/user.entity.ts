@@ -6,8 +6,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from "typeorm";
-
-const argon2 = require("argon2");
+import * as argon2 from "argon2";
 
 @Entity({ name: "users" })
 export class User {
