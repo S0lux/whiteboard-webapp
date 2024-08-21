@@ -9,6 +9,8 @@ import {
   InternalServerErrorException,
   HttpCode,
   Put,
+  ValidationPipe,
+  BadRequestException,
 } from "@nestjs/common";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { AuthenticatedGuard } from "./guards/authenticated.guard";
@@ -17,12 +19,14 @@ import { ZodValidationPipe } from "src/shared/pipes/ZodValidationPipe";
 import { RegisterUserDto, RegisterUserSchema } from "./dtos/UserRegisterDto";
 import { ChangePasswordDto, ChangePasswordSchema } from "./dtos/ChangePasswordDto";
 import { AuthUser } from "src/shared/decorators/UserDecorator";
-import { User } from "src/users/entities/user.entity";
-import { number } from "zod";
+import { EmailVerificationService } from "src/email/email-verification/email-verification.service";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly emailVerificationService: EmailVerificationService,
+  ) {}
 
   @UseGuards(LocalAuthGuard)
   @Post("login")
@@ -46,13 +50,17 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(RegisterUserSchema))
   @Post("register")
   async register(@Body() userDto: RegisterUserDto) {
-    return this.usersService.registerUser(userDto);
+    const registeredUser = await this.usersService.registerUser(userDto);
+    return await this.emailVerificationService.sendVerificationEmail({
+      email: registeredUser.email!!,
+      id: registeredUser.id!!,
+    });
   }
 
   @UseGuards(AuthenticatedGuard)
   @Get("me")
-  async getMe(@Request() req) {
-    const { hashedPassword, ...rest } = req.user;
+  async getMe(@AuthUser() user) {
+    const { hashedPassword, ...rest } = user;
     return rest;
   }
 
@@ -63,5 +71,23 @@ export class AuthController {
     @AuthUser("id") userId: number,
   ) {
     return await this.usersService.changePassword(userId, changePasswordDto);
+  }
+
+  @UsePipes(new ValidationPipe())
+  @Post("verify-email")
+  @HttpCode(200)
+  async verifyEmail(@Body("token") token: string) {
+    if (!token) throw new BadRequestException("Token is required");
+    return await this.emailVerificationService.verifyEmailToken(token);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Get("resend-email")
+  async resendEmail(@AuthUser() user) {
+    if (user.emailVerified) throw new BadRequestException("Email is already verified");
+    return await this.emailVerificationService.sendVerificationEmail({
+      email: user.email,
+      id: user.id,
+    });
   }
 }
