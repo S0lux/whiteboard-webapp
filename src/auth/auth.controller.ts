@@ -103,4 +103,12 @@ export class AuthController {
     const user = await this.usersService.findUserByEmail(email);
     if (user) await this.emailPasswordResetService.sendPasswordResetEmail(user);
   }
+
+  @Put("reset-password")
+  @HttpCode(200)
+  async resetPassword(@Body("token") token: string, @Body("newPassword") newPassword: string) {
+    if (!token || !newPassword)
+      throw new BadRequestException("Token and new password are required");
+    return await this.usersService.resetPassword(token, newPassword);
+  }
 }

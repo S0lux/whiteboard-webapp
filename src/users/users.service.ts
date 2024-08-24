@@ -5,12 +5,15 @@ import { Repository } from "typeorm";
 import { RegisterUserDto } from "src/auth/dtos/UserRegisterDto";
 import { ChangePasswordDto } from "src/auth/dtos/ChangePasswordDto";
 import * as argon2 from "argon2";
+import { PasswordToken } from "src/email/email-password-reset/entities/password-token.entity";
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(PasswordToken)
+    private readonly passwordTokenRepository: Repository<PasswordToken>,
   ) {}
 
   async findUserById(id: number): Promise<User | null> {
@@ -75,5 +78,28 @@ export class UsersService {
 
     user.hashedPassword = await argon2.hash(changePasswordDto.newPassword);
     await this.userRepository.save(user);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<any> {
+    const passwordToken = await this.passwordTokenRepository.findOne({
+      where: { token },
+    });
+
+    if (passwordToken) {
+      await this.passwordTokenRepository.delete(passwordToken.id);
+    }
+
+    if (!passwordToken || passwordToken.expiresAt < new Date()) {
+      throw new BadRequestException("Invalid or expired password token");
+    }
+
+    const user = await this.findUserById(passwordToken.userId);
+    if (!user) {
+      throw new BadRequestException("User not found");
+    }
+
+    user.hashedPassword = await argon2.hash(newPassword);
+    await this.userRepository.save(user);
+    return { message: "Password reset successfully" };
   }
 }
