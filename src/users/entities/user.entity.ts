@@ -25,6 +25,9 @@ export class User {
   @Column({ name: "hashed_password", nullable: false })
   hashedPassword: string;
 
+  @Column({ name: "user_avatar", nullable: false })
+  userAvatar: string;
+
   @CreateDateColumn({ name: "created_at", type: "timestamp" })
   createdAt: Date;
 
@@ -40,6 +43,13 @@ export class User {
     if (this.password) {
       const hash = await argon2.hash(this.password);
       this.hashedPassword = hash;
+    }
+  }
+
+  @BeforeInsert()
+  async generateUserAvatar() {
+    if (!this.userAvatar) {
+      this.userAvatar = `https://api.dicebear.com/9.x/big-ears-neutral/svg?seed=${this.username}`;
     }
   }
 }
