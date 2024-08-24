@@ -7,7 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { User } from "../../users/entities/user.entity";
+import { User } from "src/users/entities/user.entity";
 import crypto from "crypto";
 
 @Entity({ name: "email_tokens" })

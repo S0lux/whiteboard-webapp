@@ -11,6 +11,7 @@ import {
   Put,
   ValidationPipe,
   BadRequestException,
+  Res,
 } from "@nestjs/common";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { AuthenticatedGuard } from "./guards/authenticated.guard";
@@ -20,12 +21,15 @@ import { RegisterUserDto, RegisterUserSchema } from "./dtos/UserRegisterDto";
 import { ChangePasswordDto, ChangePasswordSchema } from "./dtos/ChangePasswordDto";
 import { AuthUser } from "src/shared/decorators/UserDecorator";
 import { EmailVerificationService } from "src/email/email-verification/email-verification.service";
+import { EmailPasswordResetService } from "src/email/email-password-reset/email-password-reset.service";
+import { Response } from "express";
 
 @Controller("auth")
 export class AuthController {
   constructor(
     private readonly usersService: UsersService,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly emailPasswordResetService: EmailPasswordResetService,
   ) {}
 
   @UseGuards(LocalAuthGuard)
@@ -89,5 +93,14 @@ export class AuthController {
       email: user.email,
       id: user.id,
     });
+  }
+
+  @Post("forgot-password")
+  @HttpCode(200)
+  async forgotPassword(@Body("email") email: string, @Res() res: Response) {
+    if (!email) throw new BadRequestException("Email is required");
+    res.send({ message: "Request received." });
+    const user = await this.usersService.findUserByEmail(email);
+    if (user) await this.emailPasswordResetService.sendPasswordResetEmail(user);
   }
 }

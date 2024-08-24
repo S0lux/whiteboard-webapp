@@ -8,16 +8,25 @@ import { SessionSerializer } from "./session.serializer";
 import { EmailModule } from "src/email/email.module";
 import { EmailVerificationService } from "src/email/email-verification/email-verification.service";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { EmailToken } from "src/email/entities/email-token.entity";
+import { EmailToken } from "src/email/email-verification/entities/email-token.entity";
 import { User } from "src/users/entities/user.entity";
+import { EmailPasswordResetService } from "src/email/email-password-reset/email-password-reset.service";
+import { PasswordToken } from "src/email/email-password-reset/entities/password-token.entity";
 
 @Module({
-  providers: [AuthService, EmailVerificationService, LocalStrategy, SessionSerializer],
+  providers: [
+    AuthService,
+    EmailVerificationService,
+    EmailPasswordResetService,
+    LocalStrategy,
+    SessionSerializer,
+  ],
   imports: [
     UsersModule,
     EmailModule,
     PassportModule.register({ session: true }),
     TypeOrmModule.forFeature([EmailToken]),
+    TypeOrmModule.forFeature([PasswordToken]),
     TypeOrmModule.forFeature([User]),
   ],
   controllers: [AuthController],

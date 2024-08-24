@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { EmailService } from "../email.service";
-import { EmailToken } from "src/email/entities/email-token.entity";
+import { EmailToken } from "./entities/email-token.entity";
 import { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
