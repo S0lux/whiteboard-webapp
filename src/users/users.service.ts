@@ -105,4 +105,26 @@ export class UsersService {
     await this.userRepository.save(user);
     return { message: "Password reset successfully" };
   }
+
+  async uploadAvatar(userId: number, file: Express.Multer.File): Promise<any> {
+    const user = await this.findUserById(userId);
+    if (!user) {
+      throw new BadRequestException("User not found");
+    }
+
+    const result = await this.uploaderService.uploadFile(file, "avatars", `avatar_${userId}`);
+    const optimizedAvatar = await this.uploaderService.getFileUrl(result, {
+      transformation: {
+        width: 256,
+        aspect_ratio: "1:1",
+        crop: "fill",
+        format: "webp",
+      },
+    });
+
+    user.userAvatar = optimizedAvatar;
+    await this.userRepository.save(user);
+
+    return { message: "Avatar uploaded successfully" };
+  }
 }
