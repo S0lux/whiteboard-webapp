@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, BadRequestException } from "@nestjs/common";
+import { Injectable, ConflictException, BadRequestException, Inject } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
 import { Repository } from "typeorm";
@@ -6,6 +6,7 @@ import { RegisterUserDto } from "src/auth/dtos/UserRegisterDto";
 import { ChangePasswordDto } from "src/auth/dtos/ChangePasswordDto";
 import * as argon2 from "argon2";
 import { PasswordToken } from "src/email/email-password-reset/entities/password-token.entity";
+import { UploaderService } from "src/uploader/uploader.interface";
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(PasswordToken)
     private readonly passwordTokenRepository: Repository<PasswordToken>,
+    @Inject(UploaderService)
+    private readonly uploaderService: UploaderService,
   ) {}
 
   async findUserById(id: number): Promise<User | null> {

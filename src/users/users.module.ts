@@ -4,11 +4,16 @@ import { UsersController } from "./users.controller";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
 import { PasswordToken } from "src/email/email-password-reset/entities/password-token.entity";
+import { UploaderModule } from "src/uploader/uploader.module";
 
 @Module({
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],
-  imports: [TypeOrmModule.forFeature([User]), TypeOrmModule.forFeature([PasswordToken])],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([PasswordToken]),
+    UploaderModule,
+  ],
 })
 export class UsersModule {}
