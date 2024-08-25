@@ -6,10 +6,12 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import * as argon2 from "argon2";
 import { Team } from "src/teams/entities/team.entity";
+import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 
 @Entity({ name: "users" })
 export class User {
@@ -37,19 +39,11 @@ export class User {
   @Column({ name: "max_owned_teams", default: 1 })
   maxOwnedTeams: number;
 
-  @ManyToMany(() => Team)
-  @JoinTable({
-    name: "user_teams",
-    joinColumn: {
-      name: "user_id",
-      referencedColumnName: "id",
-    },
-    inverseJoinColumn: {
-      name: "team_id",
-      referencedColumnName: "id",
-    },
-  })
+  @ManyToMany(() => Team, (team) => team.users)
   teams: Team[];
+
+  @OneToMany(() => UserTeam, (userTeam) => userTeam.user)
+  userTeams: UserTeam[];
 
   constructor(partial: Partial<User>) {
     Object.assign(this, partial);

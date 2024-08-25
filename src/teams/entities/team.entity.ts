@@ -1,5 +1,13 @@
 import { User } from "src/users/entities/user.entity";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, BeforeInsert } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany,
+  BeforeInsert,
+  OneToMany,
+} from "typeorm";
+import { UserTeam } from "./user-team-relation.entity";
 
 @Entity({ name: "teams" })
 export class Team {
@@ -18,8 +26,11 @@ export class Team {
   @Column({ name: "max_members", default: 3 })
   maxMembers: number;
 
-  @ManyToMany(() => User)
+  @ManyToMany(() => User, (user) => user.teams)
   users: User[];
+
+  @OneToMany(() => UserTeam, (userTeam) => userTeam.team)
+  userTeams: UserTeam[];
 
   constructor(partial: Partial<Team>) {
     Object.assign(this, partial);
