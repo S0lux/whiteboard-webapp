@@ -48,4 +48,13 @@ export class TeamsService {
 
     return userTeams.length < user.maxOwnedTeams;
   }
+
+  async findAll(user: { id: number }) {
+    const userTeams = await this.userTeamRepository.find({
+      where: { user: { id: user.id } },
+      relations: ["team"],
+    });
+
+    return userTeams.map((userTeam) => userTeam.team);
+  }
 }

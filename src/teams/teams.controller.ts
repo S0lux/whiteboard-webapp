@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, Post, UseGuards, UsePipes } from "@nestjs/common";
 import { TeamsService } from "./teams.service";
 import { AuthenticatedGuard } from "src/auth/guards/authenticated.guard";
 import { CreateTeamDto, CreateTeamSchema } from "./dtos/CreateTeamDto";
@@ -16,5 +16,11 @@ export class TeamsController {
     @AuthUser() user,
   ) {
     return await this.teamsService.createTeam(createTeamDto, user);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Get()
+  async findAll(@AuthUser() user) {
+    return await this.teamsService.findAll(user);
   }
 }
