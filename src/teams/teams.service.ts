@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Team } from "./entities/team.entity";
 import { Repository } from "typeorm";
@@ -6,6 +6,7 @@ import { CreateTeamDto } from "./dtos/CreateTeamDto";
 import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
 import { Role } from "../shared/role.enum";
+import { UploaderService } from "src/uploader/uploader.interface";
 
 @Injectable()
 export class TeamsService {
@@ -16,6 +17,8 @@ export class TeamsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserTeam)
     private readonly userTeamRepository: Repository<UserTeam>,
+    @Inject(UploaderService)
+    private readonly uploaderService: UploaderService,
   ) {}
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
@@ -72,5 +75,31 @@ export class TeamsService {
     await this.teamRepository.delete({ id: teamId });
 
     return { message: "Team deleted" };
+  }
+
+  async setLogo(teamId: number, logo: Express.Multer.File) {
+    const team = await this.teamRepository.findOne({ where: { id: teamId } });
+    if (!team) {
+      throw new BadRequestException("Team not found");
+    }
+
+    const logoPublicId = await this.uploaderService.uploadFile(
+      logo,
+      "team_logos",
+      teamId.toString(),
+    );
+    const optimizedLogoUrl = await this.uploaderService.getFileUrl(logoPublicId, {
+      transformation: {
+        width: 256,
+        aspect_ratio: "1:1",
+        crop: "fill",
+        format: "webp",
+      },
+    });
+
+    team.logo = optimizedLogoUrl;
+    await this.teamRepository.save(team);
+
+    return { message: "Logo uploaded" };
   }
 }
