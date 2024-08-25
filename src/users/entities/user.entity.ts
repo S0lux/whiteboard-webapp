@@ -25,8 +25,8 @@ export class User {
   @Column({ name: "hashed_password", nullable: false })
   hashedPassword: string;
 
-  @Column({ name: "user_avatar", nullable: false })
-  userAvatar: string;
+  @Column({ name: "avatar", nullable: false })
+  avatar: string;
 
   @CreateDateColumn({ name: "created_at", type: "timestamp" })
   createdAt: Date;
@@ -48,8 +48,8 @@ export class User {
 
   @BeforeInsert()
   async generateUserAvatar() {
-    if (!this.userAvatar) {
-      this.userAvatar = `https://api.dicebear.com/9.x/big-ears-neutral/svg?seed=${this.username}`;
+    if (!this.avatar) {
+      this.avatar = `https://api.dicebear.com/9.x/big-ears-neutral/svg?seed=${this.username}`;
     }
   }
 }

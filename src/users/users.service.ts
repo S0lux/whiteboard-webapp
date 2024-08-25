@@ -122,7 +122,7 @@ export class UsersService {
       },
     });
 
-    user.userAvatar = optimizedAvatar;
+    user.avatar = optimizedAvatar;
     await this.userRepository.save(user);
 
     return { message: "Avatar uploaded successfully" };
