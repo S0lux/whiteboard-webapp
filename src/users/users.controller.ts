@@ -14,7 +14,7 @@ import {
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { AuthUser } from "src/shared/decorators/UserDecorator";
+import { AuthUser } from "src/shared/decorators/user.decorator";
 import { AuthenticatedGuard } from "src/auth/guards/authenticated.guard";
 
 @Controller("users")

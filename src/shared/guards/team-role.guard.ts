@@ -31,10 +31,10 @@ export class TeamRoleGuard implements CanActivate {
     const teamId = request.params.teamId;
     const userRole = await this.teamsService.getRoleForTeam(teamId, userId);
 
-    if (!userRole) {
-      return false;
+    if (!userRole || !requiredRoles.includes(Role[userRole.toUpperCase()])) {
+      throw new UnauthorizedException("You are not authorized to perform this action.");
     }
 
-    return requiredRoles.includes(Role[userRole]);
+    return true;
   }
 }

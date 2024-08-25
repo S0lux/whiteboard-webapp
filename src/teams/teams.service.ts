@@ -5,6 +5,7 @@ import { Repository } from "typeorm";
 import { CreateTeamDto } from "./dtos/CreateTeamDto";
 import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
+import { Role } from "../shared/role.enum";
 
 @Injectable()
 export class TeamsService {
@@ -34,7 +35,7 @@ export class TeamsService {
     const userTeams = new UserTeam();
     userTeams.user = user;
     userTeams.team = newTeam;
-    userTeams.role = "owner";
+    userTeams.role = Role.OWNER;
 
     await this.userTeamRepository.save(userTeams);
 
@@ -43,7 +44,7 @@ export class TeamsService {
 
   async canCreateTeam(user: User) {
     const userTeams = await this.userTeamRepository.find({
-      where: { user: { id: user.id }, role: "owner" },
+      where: { user: { id: user.id }, role: Role.OWNER },
     });
 
     return userTeams.length < user.maxOwnedTeams;
@@ -56,5 +57,20 @@ export class TeamsService {
     });
 
     return userTeams.map((userTeam) => userTeam.team);
+  }
+
+  async getRoleForTeam(teamId: number, userId: number) {
+    const userTeam = await this.userTeamRepository.findOne({
+      where: { team: { id: teamId }, user: { id: userId } },
+    });
+
+    return userTeam?.role;
+  }
+
+  async deleteTeam(teamId: number) {
+    await this.userTeamRepository.delete({ team: { id: teamId } });
+    await this.teamRepository.delete({ id: teamId });
+
+    return { message: "Team deleted" };
   }
 }

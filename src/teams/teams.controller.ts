@@ -1,9 +1,22 @@
-import { Body, Controller, Get, Post, UseGuards, UsePipes } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+  UsePipes,
+} from "@nestjs/common";
 import { TeamsService } from "./teams.service";
 import { AuthenticatedGuard } from "src/auth/guards/authenticated.guard";
 import { CreateTeamDto, CreateTeamSchema } from "./dtos/CreateTeamDto";
-import { ZodValidationPipe } from "src/shared/pipes/ZodValidationPipe";
-import { AuthUser } from "src/shared/decorators/UserDecorator";
+import { ZodValidationPipe } from "src/shared/pipes/zod-validation.pipe";
+import { AuthUser } from "src/shared/decorators/user.decorator";
+import { TeamRoles } from "src/shared/decorators/roles.decorator";
+import { TeamRoleGuard } from "src/shared/guards/team-role.guard";
+import { Role } from "src/shared/role.enum";
 
 @Controller("teams")
 export class TeamsController {
@@ -22,5 +35,12 @@ export class TeamsController {
   @Get()
   async findAll(@AuthUser() user) {
     return await this.teamsService.findAll(user);
+  }
+
+  @TeamRoles(Role.OWNER)
+  @UseGuards(TeamRoleGuard)
+  @Delete(":teamId")
+  async delete(@Param("teamId", new ParseIntPipe()) teamId: number) {
+    return await this.teamsService.deleteTeam(teamId);
   }
 }

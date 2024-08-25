@@ -16,10 +16,10 @@ import {
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { AuthenticatedGuard } from "./guards/authenticated.guard";
 import { UsersService } from "src/users/users.service";
-import { ZodValidationPipe } from "src/shared/pipes/ZodValidationPipe";
+import { ZodValidationPipe } from "src/shared/pipes/zod-validation.pipe";
 import { RegisterUserDto, RegisterUserSchema } from "./dtos/UserRegisterDto";
 import { ChangePasswordDto, ChangePasswordSchema } from "./dtos/ChangePasswordDto";
-import { AuthUser } from "src/shared/decorators/UserDecorator";
+import { AuthUser } from "src/shared/decorators/user.decorator";
 import { EmailVerificationService } from "src/email/email-verification/email-verification.service";
 import { EmailPasswordResetService } from "src/email/email-password-reset/email-password-reset.service";
 import { Response } from "express";

@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext } from "@nestjs/common";
+import { CanActivate, ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { Observable } from "rxjs";
 
 export class AuthenticatedGuard implements CanActivate {
@@ -7,6 +7,6 @@ export class AuthenticatedGuard implements CanActivate {
     if (request.isAuthenticated()) {
       return true;
     }
-    return false;
+    throw new UnauthorizedException("User not logged in.");
   }
 }
