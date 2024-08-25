@@ -4,9 +4,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import * as argon2 from "argon2";
+import { Team } from "src/teams/entities/team.entity";
 
 @Entity({ name: "users" })
 export class User {
@@ -30,6 +33,23 @@ export class User {
 
   @CreateDateColumn({ name: "created_at", type: "timestamp" })
   createdAt: Date;
+
+  @Column({ name: "max_owned_teams", default: 1 })
+  maxOwnedTeams: number;
+
+  @ManyToMany(() => Team)
+  @JoinTable({
+    name: "user_teams",
+    joinColumn: {
+      name: "user_id",
+      referencedColumnName: "id",
+    },
+    inverseJoinColumn: {
+      name: "team_id",
+      referencedColumnName: "id",
+    },
+  })
+  teams: Team[];
 
   constructor(partial: Partial<User>) {
     Object.assign(this, partial);

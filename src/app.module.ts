@@ -8,9 +8,10 @@ import { AuthModule } from "./auth/auth.module";
 import { DatabaseModule } from "./database/database.module";
 import { EmailModule } from './email/email.module';
 import { UploaderModule } from './uploader/uploader.module';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, UsersModule, AuthModule, EmailModule, UploaderModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, UsersModule, AuthModule, EmailModule, UploaderModule, TeamsModule],
   controllers: [AppController],
   providers: [AppService],
 })
