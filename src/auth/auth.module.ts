@@ -25,9 +25,7 @@ import { PasswordToken } from "src/email/email-password-reset/entities/password-
     UsersModule,
     EmailModule,
     PassportModule.register({ session: true }),
-    TypeOrmModule.forFeature([EmailToken]),
-    TypeOrmModule.forFeature([PasswordToken]),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([EmailToken, User, PasswordToken]),
   ],
   controllers: [AuthController],
 })

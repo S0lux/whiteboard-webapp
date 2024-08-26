@@ -10,10 +10,6 @@ import { UploaderModule } from "src/uploader/uploader.module";
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],
-  imports: [
-    TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forFeature([PasswordToken]),
-    UploaderModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User, PasswordToken]), UploaderModule],
 })
 export class UsersModule {}

@@ -8,11 +8,7 @@ import { EmailPasswordResetService } from "./email-password-reset/email-password
 import { PasswordToken } from "./email-password-reset/entities/password-token.entity";
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([EmailToken]),
-    TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forFeature([PasswordToken]),
-  ],
+  imports: [TypeOrmModule.forFeature([EmailToken, User, PasswordToken])],
   providers: [EmailService, EmailVerificationService, EmailPasswordResetService],
   exports: [EmailVerificationService, EmailService],
 })
