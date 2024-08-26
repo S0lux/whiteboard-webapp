@@ -26,12 +26,14 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
 import { User } from "src/users/entities/user.entity";
 import { EmailInvitationService } from "src/email/email-invitation/email-invitation.service";
+import { InvitationGateway } from "src/gateway/invitation.gateway";
 
 @Controller("teams")
 export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
     private readonly emailInvitationService: EmailInvitationService,
+    private readonly invitationGateway: InvitationGateway,
   ) {}
 
   @UseGuards(AuthenticatedGuard)
@@ -95,6 +97,8 @@ export class TeamsController {
       invitation.team.name,
       invitation.id,
     );
+
+    this.invitationGateway.notifyNewInvitation(invitation.recipient.id.toString(), invitation);
 
     return { message: "Invitation sent" };
   }
