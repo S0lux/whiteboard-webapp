@@ -4,7 +4,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { PasswordToken } from "./entities/password-token.entity";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
-import { readFile, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
 
 @Injectable()
@@ -22,6 +22,7 @@ export class EmailPasswordResetService {
       join(__dirname, "..", "..", "templates", "password-reset.txt"),
       "utf8",
     );
+
     this.emailHtmlTemplate = readFileSync(
       join(__dirname, "..", "..", "templates", "password-reset.html"),
       "utf8",
@@ -41,7 +42,7 @@ export class EmailPasswordResetService {
     const text = this.emailTextTemplate.replace(/{{resetLink}}/g, resetLink);
 
     const mailOptions = {
-      from: `Teamscribe Support <noreply@${this.configService.getOrThrow("MAILGUN_DOMAIN")}>`,
+      from: `Teamscribe Support <noreply@teamscribe.app>`,
       to: user.email,
       subject: "Reset Your Password",
       html,

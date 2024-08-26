@@ -8,9 +8,15 @@ import { UserTeam } from "./entities/user-team-relation.entity";
 import { UploaderModule } from "src/uploader/uploader.module";
 import { UsersModule } from "src/users/users.module";
 import { Invite } from "../invites/entities/invite.entity";
+import { EmailModule } from "src/email/email.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Team, UserTeam, Invite]), UploaderModule, UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([User, Team, UserTeam, Invite]),
+    UploaderModule,
+    UsersModule,
+    EmailModule,
+  ],
   providers: [TeamsService],
   controllers: [TeamsController],
 })

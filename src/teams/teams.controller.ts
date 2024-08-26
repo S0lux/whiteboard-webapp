@@ -26,12 +26,14 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
 import { UsersService } from "src/users/users.service";
 import { User } from "src/users/entities/user.entity";
+import { EmailInvitationService } from "src/email/email-invitation/email-invitation.service";
 
 @Controller("teams")
 export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
     private readonly usersService: UsersService,
+    private readonly emailInvitationService: EmailInvitationService,
   ) {}
 
   @UseGuards(AuthenticatedGuard)
@@ -84,7 +86,17 @@ export class TeamsController {
     @AuthUser("email") senderEmail: string,
   ) {
     const { recipientEmail } = body;
-    await this.teamsService.createInvitation(senderEmail, recipientEmail, teamId);
+    const invitation = await this.teamsService.createInvitation(
+      senderEmail,
+      recipientEmail,
+      teamId,
+    );
+
+    await this.emailInvitationService.sendInvitationEmail(
+      recipientEmail,
+      invitation.team.name,
+      invitation.id,
+    );
 
     return { message: "Invitation sent" };
   }
