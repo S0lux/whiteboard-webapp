@@ -12,7 +12,7 @@ import {
 import * as argon2 from "argon2";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
-import { Invite } from "src/teams/entities/invite.entity";
+import { Invite } from "src/invites/entities/invite.entity";
 
 @Entity({ name: "users" })
 export class User {

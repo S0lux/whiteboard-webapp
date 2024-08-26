@@ -7,7 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Team } from "./team.entity";
+import { Team } from "../../teams/entities/team.entity";
 import { InviteStatus } from "src/shared/invite-status.enum";
 
 @Entity({ name: "invites" })

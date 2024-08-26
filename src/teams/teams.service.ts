@@ -7,7 +7,7 @@ import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
 import { Role } from "../shared/role.enum";
 import { UploaderService } from "src/uploader/uploader.interface";
-import { Invite } from "./entities/invite.entity";
+import { Invite } from "../invites/entities/invite.entity";
 import { InviteStatus } from "src/shared/invite-status.enum";
 
 @Injectable()
@@ -67,7 +67,12 @@ export class TeamsService {
       relations: ["team"],
     });
 
-    return userTeams.map((userTeam) => userTeam.team);
+    return userTeams.map((userTeam) => {
+      return {
+        ...userTeam.team,
+        role: userTeam.role,
+      };
+    });
   }
 
   async getRoleForTeam(teamId: number, userId: number) {

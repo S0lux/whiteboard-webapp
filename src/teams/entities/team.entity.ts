@@ -8,7 +8,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { UserTeam } from "./user-team-relation.entity";
-import { Invite } from "./invite.entity";
+import { Invite } from "../../invites/entities/invite.entity";
 
 @Entity({ name: "teams" })
 export class Team {

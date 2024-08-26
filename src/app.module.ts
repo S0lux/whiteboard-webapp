@@ -9,9 +9,10 @@ import { DatabaseModule } from "./database/database.module";
 import { EmailModule } from './email/email.module';
 import { UploaderModule } from './uploader/uploader.module';
 import { TeamsModule } from './teams/teams.module';
+import { InvitesModule } from './invites/invites.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, UsersModule, AuthModule, EmailModule, UploaderModule, TeamsModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, UsersModule, AuthModule, EmailModule, UploaderModule, TeamsModule, InvitesModule],
   controllers: [AppController],
   providers: [AppService],
 })
