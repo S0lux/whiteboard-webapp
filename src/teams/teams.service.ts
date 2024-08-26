@@ -155,4 +155,37 @@ export class TeamsService {
 
     return await this.inviteRepository.save(invite);
   }
+
+  async getMembers(teamId: number) {
+    const teamRelations = await this.userTeamRepository.find({
+      where: { team: { id: teamId } },
+      relations: ["user"],
+    });
+
+    const currentMembers = teamRelations.map((relation) => {
+      const member = {
+        id: relation.user.id,
+        name: relation.user.username,
+        email: relation.user.email,
+        avatar: relation.user.avatar,
+        role: relation.role,
+      };
+
+      return member;
+    });
+
+    const invites = await this.inviteRepository.find({
+      where: { team: { id: teamId }, status: InviteStatus.PENDING },
+      relations: ["recipient"],
+    });
+
+    const pendingMembers = invites.map((invite) => {
+      return {
+        name: invite.recipient.username,
+        email: invite.recipient.email,
+      };
+    });
+
+    return { currentMembers, pendingMembers };
+  }
 }

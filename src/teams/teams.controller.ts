@@ -24,7 +24,6 @@ import { TeamRoleGuard } from "src/shared/guards/team-role.guard";
 import { Role } from "src/shared/role.enum";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
-import { UsersService } from "src/users/users.service";
 import { User } from "src/users/entities/user.entity";
 import { EmailInvitationService } from "src/email/email-invitation/email-invitation.service";
 
@@ -32,7 +31,6 @@ import { EmailInvitationService } from "src/email/email-invitation/email-invitat
 export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
-    private readonly usersService: UsersService,
     private readonly emailInvitationService: EmailInvitationService,
   ) {}
 
@@ -100,4 +98,21 @@ export class TeamsController {
 
     return { message: "Invitation sent" };
   }
+
+  @TeamRoles(Role.OWNER, Role.MEMBER)
+  @UseGuards(TeamRoleGuard)
+  @Get(":teamId/members")
+  async getMembers(@Param("teamId", new ParseIntPipe()) teamId: number) {
+    return await this.teamsService.getMembers(teamId);
+  }
+
+  // @TeamRoles(Role.OWNER)
+  // @UseGuards(TeamRoleGuard)
+  // @Delete(":teamId/members/:userId")
+  // async removeMember(
+  //   @Param("teamId", new ParseIntPipe()) teamId: number,
+  //   @Param("userId", new ParseIntPipe()) userId: number,
+  // ) {
+  //   return await this.teamsService.removeMember(teamId, userId);
+  // }
 }
