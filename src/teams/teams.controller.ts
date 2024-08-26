@@ -106,13 +106,13 @@ export class TeamsController {
     return await this.teamsService.getMembers(teamId);
   }
 
-  // @TeamRoles(Role.OWNER)
-  // @UseGuards(TeamRoleGuard)
-  // @Delete(":teamId/members/:userId")
-  // async removeMember(
-  //   @Param("teamId", new ParseIntPipe()) teamId: number,
-  //   @Param("userId", new ParseIntPipe()) userId: number,
-  // ) {
-  //   return await this.teamsService.removeMember(teamId, userId);
-  // }
+  @TeamRoles(Role.OWNER)
+  @UseGuards(TeamRoleGuard)
+  @Delete(":teamId/members/:userId")
+  async removeMember(
+    @Param("teamId", new ParseIntPipe()) teamId: number,
+    @Param("userId", new ParseIntPipe()) userId: number,
+  ) {
+    return await this.teamsService.removeMember(teamId, userId);
+  }
 }

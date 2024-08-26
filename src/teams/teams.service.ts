@@ -188,4 +188,10 @@ export class TeamsService {
 
     return { currentMembers, pendingMembers };
   }
+
+  async removeMember(teamId: number, userId: number) {
+    await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: userId } });
+
+    return { message: "Member removed" };
+  }
 }
