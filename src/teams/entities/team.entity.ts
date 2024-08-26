@@ -8,6 +8,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { UserTeam } from "./user-team-relation.entity";
+import { Invite } from "./invite.entity";
 
 @Entity({ name: "teams" })
 export class Team {
@@ -31,6 +32,9 @@ export class Team {
 
   @OneToMany(() => UserTeam, (userTeam) => userTeam.team)
   userTeams: UserTeam[];
+
+  @OneToMany(() => Invite, (invite) => invite.team)
+  invites: Invite[];
 
   constructor(partial: Partial<Team>) {
     Object.assign(this, partial);

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Team } from "./entities/team.entity";
 import { Repository } from "typeorm";
@@ -7,6 +7,8 @@ import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
 import { Role } from "../shared/role.enum";
 import { UploaderService } from "src/uploader/uploader.interface";
+import { Invite } from "./entities/invite.entity";
+import { InviteStatus } from "src/shared/invite-status.enum";
 
 @Injectable()
 export class TeamsService {
@@ -17,6 +19,8 @@ export class TeamsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserTeam)
     private readonly userTeamRepository: Repository<UserTeam>,
+    @InjectRepository(Invite)
+    private readonly inviteRepository: Repository<Invite>,
     @Inject(UploaderService)
     private readonly uploaderService: UploaderService,
   ) {}
@@ -43,6 +47,10 @@ export class TeamsService {
     await this.userTeamRepository.save(userTeams);
 
     return newTeam;
+  }
+
+  async findById(id: number) {
+    return await this.teamRepository.findOne({ where: { id } });
   }
 
   async canCreateTeam(user: User) {
@@ -101,5 +109,45 @@ export class TeamsService {
     await this.teamRepository.save(team);
 
     return { message: "Logo uploaded" };
+  }
+
+  async createInvitation(
+    senderEmail: string,
+    recipientEmail: string,
+    teamId: number,
+  ): Promise<Invite> {
+    const sender = await this.userRepository.findOne({ where: { email: senderEmail } });
+    if (!sender) {
+      throw new BadRequestException("Sender not found");
+    }
+
+    const recipient = await this.userRepository.findOne({ where: { email: recipientEmail } });
+    if (!recipient) {
+      throw new BadRequestException("Recipient not found");
+    }
+
+    const team = await this.teamRepository.findOne({ where: { id: teamId } });
+    if (!team) {
+      throw new BadRequestException("Team not found");
+    }
+
+    const existingInvite = await this.inviteRepository.findOne({
+      where: {
+        team: { id: teamId },
+        recipient: { id: recipient.id },
+        status: InviteStatus.PENDING,
+      },
+    });
+
+    if (existingInvite) {
+      throw new ConflictException("Invite already sent");
+    }
+
+    const invite = new Invite();
+    invite.sender = sender;
+    invite.recipient = recipient;
+    invite.team = team;
+
+    return await this.inviteRepository.save(invite);
   }
 }

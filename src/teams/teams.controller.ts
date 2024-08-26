@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -22,10 +23,16 @@ import { TeamRoles } from "src/shared/decorators/roles.decorator";
 import { TeamRoleGuard } from "src/shared/guards/team-role.guard";
 import { Role } from "src/shared/role.enum";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
+import { UsersService } from "src/users/users.service";
+import { User } from "src/users/entities/user.entity";
 
 @Controller("teams")
 export class TeamsController {
-  constructor(private readonly teamsService: TeamsService) {}
+  constructor(
+    private readonly teamsService: TeamsService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @UseGuards(AuthenticatedGuard)
   @Post()
@@ -66,5 +73,19 @@ export class TeamsController {
     file: Express.Multer.File,
   ) {
     return await this.teamsService.setLogo(teamId, file);
+  }
+
+  @TeamRoles(Role.OWNER)
+  @UseGuards(TeamRoleGuard)
+  @Post(":teamId/members")
+  async invite(
+    @Param("teamId", new ParseIntPipe()) teamId: number,
+    @Body(new ZodValidationPipe(InviteMemberSchema)) body: InviteMemberDto,
+    @AuthUser("email") senderEmail: string,
+  ) {
+    const { recipientEmail } = body;
+    await this.teamsService.createInvitation(senderEmail, recipientEmail, teamId);
+
+    return { message: "Invitation sent" };
   }
 }

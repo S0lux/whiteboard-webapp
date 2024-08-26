@@ -12,6 +12,7 @@ import {
 import * as argon2 from "argon2";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
+import { Invite } from "src/teams/entities/invite.entity";
 
 @Entity({ name: "users" })
 export class User {
@@ -44,6 +45,12 @@ export class User {
 
   @OneToMany(() => UserTeam, (userTeam) => userTeam.user)
   userTeams: UserTeam[];
+
+  @OneToMany(() => Invite, (invite) => invite.sender)
+  sentInvites: Invite[];
+
+  @OneToMany(() => Invite, (invite) => invite.recipient)
+  receivedInvites: Invite[];
 
   constructor(partial: Partial<User>) {
     Object.assign(this, partial);
