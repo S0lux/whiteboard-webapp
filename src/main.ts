@@ -10,7 +10,15 @@ import { SocketIOAdapter } from "./shared/socket-io.adapter";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get<ConfigService>(ConfigService);
-  const redisStore = await createRedisStore(configService.getOrThrow<string>("REDIS_PASSWORD"));
+
+  const port =
+    configService.getOrThrow<string>("NODE_ENV").toUpperCase() === "PRODUCTION" ? 443 : 3001;
+
+  const redisStore = await createRedisStore(
+    configService.getOrThrow<string>("REDIS_PASSWORD"),
+    configService.getOrThrow<string>("REDIS_HOST"),
+  );
+
   const sessionMiddleware = session({
     store: redisStore,
     resave: false,
@@ -20,6 +28,7 @@ async function bootstrap() {
       maxAge: 1000 * 60 * 60 * 24 * 31,
     },
   });
+
   const passportSessionMiddleware = passport.session();
 
   app.enableCors({
@@ -40,12 +49,12 @@ async function bootstrap() {
     ),
   );
 
-  await app.listen(3000);
+  await app.listen(port);
 }
 
-async function createRedisStore(redisPassword: string): Promise<RedisStore> {
+async function createRedisStore(redisPassword: string, redisHost: string): Promise<RedisStore> {
   const redisClient = createClient({
-    password: redisPassword,
+    url: `redis://:${redisPassword}@${redisHost}:6379`,
   });
 
   await redisClient.connect();
