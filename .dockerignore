@@ -2,3 +2,9 @@ nest-server/
 node_modules/
 dist/
 .env
+pgdata-dev/
+pgdata-prod/
+redisdata-dev/
+redisdata-prod/
+.env.dev
+.env.prod

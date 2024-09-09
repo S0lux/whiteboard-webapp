@@ -57,3 +57,10 @@ nest-server
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+pgdata-dev/
+pgdata-prod/
+redisdata-dev/
+redisdata-prod/
+.env.dev
+.env.prod

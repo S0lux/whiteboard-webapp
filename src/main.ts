@@ -12,7 +12,7 @@ async function bootstrap() {
   const configService = app.get<ConfigService>(ConfigService);
 
   const port =
-    configService.getOrThrow<string>("NODE_ENV").toUpperCase() === "PRODUCTION" ? 443 : 3001;
+    configService.getOrThrow<string>("NODE_ENV").toUpperCase() === "PRODUCTION" ? 443 : 3000;
 
   const redisStore = await createRedisStore(
     configService.getOrThrow<string>("REDIS_PASSWORD"),
@@ -49,6 +49,7 @@ async function bootstrap() {
     ),
   );
 
+  console.log("Port: ", port);
   await app.listen(port);
 }
 
