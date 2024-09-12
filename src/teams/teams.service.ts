@@ -36,7 +36,7 @@ export class TeamsService {
       throw new BadRequestException("You reached the maximum number of teams you can create");
     }
 
-    const newTeam = new Team({ name: data.name });
+    const newTeam = new Team({ name: data.name, description: data.description });
     await this.teamRepository.save(newTeam);
 
     const userTeams = new UserTeam();
