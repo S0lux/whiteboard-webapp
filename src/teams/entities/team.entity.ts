@@ -24,9 +24,6 @@ export class Team {
   @Column()
   logo: string;
 
-  @Column({ name: "max_members", default: 3 })
-  maxMembers: number;
-
   @ManyToMany(() => User, (user) => user.teams)
   users: User[];
 

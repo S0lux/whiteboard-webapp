@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Team } from "./entities/team.entity";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { CreateTeamDto } from "./dtos/CreateTeamDto";
 import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
@@ -9,6 +9,7 @@ import { Role } from "../shared/role.enum";
 import { UploaderService } from "src/uploader/uploader.interface";
 import { Invite } from "../invites/entities/invite.entity";
 import { InviteStatus } from "src/shared/invite-status.enum";
+import { getPlanDetails } from "src/shared/plan_details.helper";
 
 @Injectable()
 export class TeamsService {
@@ -58,7 +59,9 @@ export class TeamsService {
       where: { user: { id: user.id }, role: Role.OWNER },
     });
 
-    return userTeams.length < user.maxOwnedTeams;
+    const userPlan = getPlanDetails(user.accountPlan);
+
+    return userTeams.length < userPlan.maxOwnedTeams;
   }
 
   async findAll(user: { id: number }) {
@@ -67,10 +70,23 @@ export class TeamsService {
       relations: ["team"],
     });
 
+    // Find the team owner of each team in userTeams
+    const teamIds = userTeams.map((userTeam) => userTeam.team.id);
+    const teamOwners = (
+      await this.userTeamRepository.find({
+        where: { team: { id: In(teamIds) }, role: Role.OWNER },
+        relations: ["user", "team"],
+      })
+    ).map((userTeam) => {
+      return { teamId: userTeam.team.id, accountPlan: userTeam.user.accountPlan };
+    });
+
     return userTeams.map((userTeam) => {
+      const teamOwner = teamOwners.find((owner) => owner.teamId === userTeam.team.id);
       return {
         ...userTeam.team,
         role: userTeam.role,
+        plan: teamOwner!.accountPlan,
       };
     });
   }
@@ -121,6 +137,10 @@ export class TeamsService {
     recipientEmail: string,
     teamId: number,
   ): Promise<Invite> {
+    if (senderEmail === recipientEmail) {
+      throw new BadRequestException("You cannot invite yourself");
+    }
+
     const sender = await this.userRepository.findOne({ where: { email: senderEmail } });
     if (!sender) {
       throw new BadRequestException("Sender not found");
@@ -181,8 +201,10 @@ export class TeamsService {
 
     const pendingMembers = invites.map((invite) => {
       return {
+        id: invite.recipient.id,
         name: invite.recipient.username,
         email: invite.recipient.email,
+        avatar: invite.recipient.avatar,
       };
     });
 
@@ -190,8 +212,19 @@ export class TeamsService {
   }
 
   async removeMember(teamId: number, userId: number) {
-    await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: userId } });
+    const userTeam = await this.userTeamRepository.findOne({
+      where: { team: { id: teamId }, user: { id: userId } },
+    });
 
+    if (!userTeam) {
+      throw new BadRequestException("User not found in team");
+    }
+
+    if (userTeam.role === Role.OWNER) {
+      throw new BadRequestException("Owner cannot be removed");
+    }
+
+    await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: userId } });
     return { message: "Member removed" };
   }
 }

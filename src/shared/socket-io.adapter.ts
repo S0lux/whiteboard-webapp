@@ -19,6 +19,7 @@ export class SocketIOAdapter extends IoAdapter {
       cors: {
         origin: this.configService.getOrThrow<string>("FRONTEND_URL"),
         credentials: true,
+        methods: ["GET", "POST"],
       },
     });
     const wrap = (middleware) => (socket, next) => middleware(socket.request, {}, next);

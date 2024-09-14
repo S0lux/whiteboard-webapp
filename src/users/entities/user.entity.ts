@@ -13,6 +13,7 @@ import * as argon2 from "argon2";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Invite } from "src/invites/entities/invite.entity";
+import { Plan } from "src/shared/plan.enum";
 
 @Entity({ name: "users" })
 export class User {
@@ -37,8 +38,8 @@ export class User {
   @CreateDateColumn({ name: "created_at", type: "timestamp" })
   createdAt: Date;
 
-  @Column({ name: "max_owned_teams", default: 1 })
-  maxOwnedTeams: number;
+  @Column({ name: "account_plan", nullable: false, default: "FREE" })
+  accountPlan: Plan;
 
   @ManyToMany(() => Team, (team) => team.users)
   teams: Team[];
