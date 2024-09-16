@@ -5,7 +5,8 @@ import { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
 import { ConfigService } from "@nestjs/config";
-import { NotificationGateway } from "src/gateway/notification.gateway";
+import { NotificationsService } from "src/notifications/notifications.service";
+import { NotificationType } from "src/shared/notification.enum";
 
 @Injectable()
 export class EmailVerificationService {
@@ -16,7 +17,7 @@ export class EmailVerificationService {
     private readonly emailTokenRepository: Repository<EmailToken>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly notificationGateway: NotificationGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private async createEmailToken(userId: number): Promise<EmailToken> {
@@ -35,7 +36,14 @@ export class EmailVerificationService {
 
     await this.userRepository.update(emailToken.userId, { emailVerified: true });
     await this.emailTokenRepository.delete(emailToken.id);
-    this.notificationGateway.notifyAccountUpdated(emailToken.userId.toString());
+    await this.notificationsService.createNotification(
+      emailToken.userId,
+      "Your email has been verified.",
+      NotificationType.BASIC,
+    );
+
+    this.notificationsService.notifyAccountUpdated(emailToken.userId.toString());
+
     return { message: "Email verified succesfully." };
   }
 

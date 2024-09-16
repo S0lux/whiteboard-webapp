@@ -10,6 +10,8 @@ import { UploaderService } from "src/uploader/uploader.interface";
 import { Invite } from "../invites/entities/invite.entity";
 import { InviteStatus } from "src/shared/invite-status.enum";
 import { getPlanDetails } from "src/shared/plan_details.helper";
+import { NotificationsService } from "src/notifications/notifications.service";
+import { NotificationType } from "src/shared/notification.enum";
 
 @Injectable()
 export class TeamsService {
@@ -24,6 +26,7 @@ export class TeamsService {
     private readonly inviteRepository: Repository<Invite>,
     @Inject(UploaderService)
     private readonly uploaderService: UploaderService,
+    private readonly notificationService: NotificationsService,
   ) {}
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
@@ -173,7 +176,16 @@ export class TeamsService {
     invite.recipient = recipient;
     invite.team = team;
 
-    return await this.inviteRepository.save(invite);
+    const newInvite = await this.inviteRepository.save(invite);
+
+    await this.notificationService.createNotification(
+      recipient.id,
+      `You have been invited to join ${team.name}`,
+      NotificationType.INVITE,
+      newInvite.id,
+    );
+
+    return newInvite;
   }
 
   async getMembers(teamId: number) {
@@ -225,6 +237,26 @@ export class TeamsService {
     }
 
     await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: userId } });
+
+    // Notify team members to update their team members list
+    const teamMemberRelations = await this.userTeamRepository.find({
+      where: { team: { id: teamId } },
+      relations: ["user"],
+    });
+
+    const teamMembers = teamMemberRelations.map((relation) => relation.user.id.toString());
+    this.notificationService.notifyTeamMemberUpdated(teamMembers, teamId.toString());
+
+    // Notify the removed user
+    const team = await this.teamRepository.findOne({ where: { id: teamId } });
+    this.notificationService.createNotification(
+      userId,
+      `You have been removed from the team ${team?.name}`,
+      NotificationType.BASIC,
+    );
+
+    this.notificationService.notifyRemovedFromTeam(userId.toString(), teamId.toString());
+
     return { message: "Member removed" };
   }
 }

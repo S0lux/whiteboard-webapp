@@ -13,6 +13,7 @@ import { User } from "src/users/entities/user.entity";
 import { EmailPasswordResetService } from "src/email/email-password-reset/email-password-reset.service";
 import { PasswordToken } from "src/email/email-password-reset/entities/password-token.entity";
 import { GatewayModule } from "src/gateway/gateway.module";
+import { NotificationsModule } from "src/notifications/notifications.module";
 
 @Module({
   providers: [
@@ -28,6 +29,7 @@ import { GatewayModule } from "src/gateway/gateway.module";
     PassportModule.register({ session: true }),
     TypeOrmModule.forFeature([EmailToken, User, PasswordToken]),
     GatewayModule,
+    NotificationsModule,
   ],
   controllers: [AuthController],
 })

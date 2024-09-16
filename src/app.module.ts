@@ -11,6 +11,7 @@ import { UploaderModule } from "./uploader/uploader.module";
 import { TeamsModule } from "./teams/teams.module";
 import { InvitesModule } from "./invites/invites.module";
 import { GatewayModule } from "./gateway/gateway.module";
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { GatewayModule } from "./gateway/gateway.module";
     InvitesModule,
     GatewayModule,
     GatewayModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

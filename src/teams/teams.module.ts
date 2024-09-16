@@ -9,7 +9,7 @@ import { UploaderModule } from "src/uploader/uploader.module";
 import { UsersModule } from "src/users/users.module";
 import { Invite } from "../invites/entities/invite.entity";
 import { EmailModule } from "src/email/email.module";
-import { GatewayModule } from "src/gateway/gateway.module";
+import { NotificationsModule } from "src/notifications/notifications.module";
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { GatewayModule } from "src/gateway/gateway.module";
     UploaderModule,
     UsersModule,
     EmailModule,
-    GatewayModule,
+    NotificationsModule,
   ],
   providers: [TeamsService],
   controllers: [TeamsController],

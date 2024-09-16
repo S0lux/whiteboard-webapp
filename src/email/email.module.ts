@@ -8,9 +8,14 @@ import { EmailPasswordResetService } from "./email-password-reset/email-password
 import { PasswordToken } from "./email-password-reset/entities/password-token.entity";
 import { EmailInvitationService } from "./email-invitation/email-invitation.service";
 import { GatewayModule } from "src/gateway/gateway.module";
+import { NotificationsModule } from "src/notifications/notifications.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EmailToken, User, PasswordToken]), GatewayModule],
+  imports: [
+    TypeOrmModule.forFeature([EmailToken, User, PasswordToken]),
+    GatewayModule,
+    NotificationsModule,
+  ],
   providers: [
     EmailService,
     EmailVerificationService,

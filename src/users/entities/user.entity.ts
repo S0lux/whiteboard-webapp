@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinTable,
   ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -13,6 +12,7 @@ import * as argon2 from "argon2";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Invite } from "src/invites/entities/invite.entity";
+import { Notification } from "src/notifications/entities/notification.entity";
 import { Plan } from "src/shared/plan.enum";
 
 @Entity({ name: "users" })
@@ -52,6 +52,9 @@ export class User {
 
   @OneToMany(() => Invite, (invite) => invite.recipient)
   receivedInvites: Invite[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 
   constructor(partial: Partial<User>) {
     Object.assign(this, partial);
