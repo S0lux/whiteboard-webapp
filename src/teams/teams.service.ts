@@ -103,20 +103,24 @@ export class TeamsService {
   }
 
   async deleteTeam(teamId: number) {
-    const oldTeam = await this.teamRepository.findOne({ where: { id: teamId } });
+    const oldTeam = await this.teamRepository.findOne({
+      where: { id: teamId },
+    });
 
     if (!oldTeam) {
       throw new BadRequestException("Team not found");
     }
 
-    await this.userTeamRepository.delete({ team: { id: teamId } });
-    await this.teamRepository.delete({ id: teamId });
-
-    this.notificationService.sendNotificationTeam(
+    // This needs to be done before deleting the team
+    await this.notificationService.sendNotificationTeam(
       teamId,
       `${oldTeam.name} has been disbanded.`,
-      NotificationType.BASIC,
+      NotificationType.DISBAND,
     );
+
+    await this.userTeamRepository.delete({ team: { id: teamId } });
+    await this.inviteRepository.delete({ team: { id: teamId } });
+    await this.teamRepository.delete({ id: teamId });
 
     return { message: "Team deleted" };
   }

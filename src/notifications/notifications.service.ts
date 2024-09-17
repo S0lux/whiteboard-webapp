@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Notification } from "./entities/notification.entity";
 import { Repository } from "typeorm";
@@ -71,7 +71,7 @@ export class NotificationsService {
     const teamMembers = await this.getTeamMembers(teamId.toString());
 
     if (teamMembers.length === 0) {
-      throw new Error("Team not found");
+      throw new InternalServerErrorException("Team not found");
     }
 
     const notifications = teamMembers.map((member) => {
@@ -88,6 +88,12 @@ export class NotificationsService {
     teamMembers.forEach((member) => {
       this.notificationGateway.server.to(`user:${member.id}`).emit("new_notification");
     });
+
+    if (type === NotificationType.DISBAND) {
+      teamMembers.forEach((member) => {
+        this.notifyRemovedFromTeam(member.id.toString(), teamId.toString());
+      });
+    }
 
     return newNotifications;
   }
