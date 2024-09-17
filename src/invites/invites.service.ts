@@ -57,7 +57,7 @@ export class InvitesService {
 
       this.notificationService.sendNotificationUser(
         invite.sender.id,
-        `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
+        `${invite.recipient.username} has accepted your invitation to join ${invite.team.name}`,
       );
 
       this.notificationService.notifyTeamMemberUpdated(invite.team.id.toString());
