@@ -52,7 +52,7 @@ export class TeamsController {
   @TeamRoles(Role.OWNER)
   @UseGuards(TeamRoleGuard)
   @Delete(":teamId")
-  async delete(@Param("teamId", new ParseIntPipe()) teamId: number) {
+  async delete(@Param("teamId", ParseIntPipe) teamId: number) {
     return await this.teamsService.deleteTeam(teamId);
   }
 
@@ -61,7 +61,7 @@ export class TeamsController {
   @UseInterceptors(FileInterceptor("logo"))
   @Post(":teamId/logo")
   async uploadLogo(
-    @Param("teamId", new ParseIntPipe()) teamId: number,
+    @Param("teamId", ParseIntPipe) teamId: number,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -79,7 +79,7 @@ export class TeamsController {
   @UseGuards(TeamRoleGuard)
   @Post(":teamId/members")
   async invite(
-    @Param("teamId", new ParseIntPipe()) teamId: number,
+    @Param("teamId", ParseIntPipe) teamId: number,
     @Body(new ZodValidationPipe(InviteMemberSchema)) body: InviteMemberDto,
     @AuthUser("email") senderEmail: string,
   ) {
@@ -102,7 +102,7 @@ export class TeamsController {
   @TeamRoles(Role.OWNER, Role.MEMBER)
   @UseGuards(TeamRoleGuard)
   @Get(":teamId/members")
-  async getMembers(@Param("teamId", new ParseIntPipe()) teamId: number) {
+  async getMembers(@Param("teamId", ParseIntPipe) teamId: number) {
     return await this.teamsService.getMembers(teamId);
   }
 
@@ -110,8 +110,8 @@ export class TeamsController {
   @UseGuards(TeamRoleGuard)
   @Delete(":teamId/members/:userId")
   async removeMember(
-    @Param("teamId", new ParseIntPipe()) teamId: number,
-    @Param("userId", new ParseIntPipe()) userId: number,
+    @Param("teamId", ParseIntPipe) teamId: number,
+    @Param("userId", ParseIntPipe) userId: number,
   ) {
     return await this.teamsService.removeMember(teamId, userId);
   }

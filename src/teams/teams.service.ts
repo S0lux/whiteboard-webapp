@@ -103,8 +103,20 @@ export class TeamsService {
   }
 
   async deleteTeam(teamId: number) {
+    const oldTeam = await this.teamRepository.findOne({ where: { id: teamId } });
+
+    if (!oldTeam) {
+      throw new BadRequestException("Team not found");
+    }
+
     await this.userTeamRepository.delete({ team: { id: teamId } });
     await this.teamRepository.delete({ id: teamId });
+
+    this.notificationService.sendNotificationTeam(
+      teamId,
+      `${oldTeam.name} has been disbanded.`,
+      NotificationType.BASIC,
+    );
 
     return { message: "Team deleted" };
   }
@@ -178,7 +190,7 @@ export class TeamsService {
 
     const newInvite = await this.inviteRepository.save(invite);
 
-    this.notificationService.createNotification(
+    this.notificationService.sendNotificationUser(
       recipient.id,
       `You have been invited to join ${team.name}`,
       NotificationType.INVITE,
@@ -243,7 +255,7 @@ export class TeamsService {
     // Notify the removed user
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
-    this.notificationService.createNotification(
+    this.notificationService.sendNotificationUser(
       userId,
       `You have been removed from the team ${team?.name}`,
       NotificationType.BASIC,
