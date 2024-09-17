@@ -13,6 +13,7 @@ services:
       NODE_ENV: DEVELOPMENT
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
+      TYPEORM_SYNCHRONIZE: true
     depends_on:
       - postgres
       - redis

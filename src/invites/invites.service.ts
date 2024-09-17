@@ -55,7 +55,7 @@ export class InvitesService {
       await this.addToTeam(invite);
       invite.status = InviteStatus.ACCEPTED;
 
-      this.notificationService.createNotification(
+      this.notificationService.sendNotificationUser(
         invite.sender.id,
         `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
       );
@@ -64,7 +64,7 @@ export class InvitesService {
     } else if (status.toUpperCase() === InviteStatus.REJECTED) {
       invite.status = InviteStatus.REJECTED;
 
-      this.notificationService.createNotification(
+      this.notificationService.sendNotificationUser(
         invite.sender.id,
         `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
       );

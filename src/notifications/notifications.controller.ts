@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseIntPipe, Patch, Req, UseGuards } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 import { AuthenticatedGuard } from "src/auth/guards/authenticated.guard";
 import { AuthUser } from "src/shared/decorators/user.decorator";
@@ -15,7 +15,7 @@ export class NotificationsController {
 
   @UseGuards(AuthenticatedGuard)
   @Patch(":id")
-  async markAsRead(@Req() req, @AuthUser("id") userId) {
-    return this.notificationService.markAsRead(req.params.id, userId);
+  async markAsRead(@Param("id", ParseIntPipe) inviteId: number, @AuthUser("id") userId) {
+    return this.notificationService.markAsRead(inviteId, userId);
   }
 }

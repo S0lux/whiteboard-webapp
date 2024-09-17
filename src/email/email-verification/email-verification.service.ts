@@ -36,7 +36,7 @@ export class EmailVerificationService {
 
     await this.userRepository.update(emailToken.userId, { emailVerified: true });
     await this.emailTokenRepository.delete(emailToken.id);
-    await this.notificationsService.createNotification(
+    await this.notificationsService.sendNotificationUser(
       emailToken.userId,
       "Your email has been verified.",
       NotificationType.BASIC,

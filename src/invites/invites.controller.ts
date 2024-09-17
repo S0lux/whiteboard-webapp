@@ -19,7 +19,7 @@ export class InvitesController {
   @UseGuards(AuthenticatedGuard)
   @Get(":inviteId")
   async getInvite(
-    @Param("inviteId", new ParseIntPipe()) inviteId: number,
+    @Param("inviteId", ParseIntPipe) inviteId: number,
     @AuthUser("id") requesterId: number,
   ) {
     const invite = await this.invitesService.getInvite(inviteId, requesterId);
@@ -35,7 +35,7 @@ export class InvitesController {
   @UseGuards(AuthenticatedGuard)
   @Patch(":inviteId")
   async replyToInvite(
-    @Param("inviteId", new ParseIntPipe()) inviteId: number,
+    @Param("inviteId", ParseIntPipe) inviteId: number,
     @AuthUser("id") requesterId: number,
     @Body("status") status: string,
   ) {

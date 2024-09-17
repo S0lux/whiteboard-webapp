@@ -34,7 +34,7 @@ export class NotificationsService {
     });
   }
 
-  async createNotification(
+  async sendNotificationUser(
     userId: number,
     content: string,
     type: NotificationType = NotificationType.BASIC,
@@ -60,6 +60,36 @@ export class NotificationsService {
     this.notificationGateway.server.to(`user:${userId}`).emit("new_notification");
 
     return newNotification;
+  }
+
+  async sendNotificationTeam(
+    teamId: number,
+    content: string,
+    type: NotificationType = NotificationType.BASIC,
+    inviteId?: number,
+  ) {
+    const teamMembers = await this.getTeamMembers(teamId.toString());
+
+    if (teamMembers.length === 0) {
+      throw new Error("Team not found");
+    }
+
+    const notifications = teamMembers.map((member) => {
+      return this.notificationRepository.create({
+        content,
+        type,
+        user: member,
+        inviteId,
+      });
+    });
+
+    const newNotifications = await this.notificationRepository.save(notifications);
+
+    teamMembers.forEach((member) => {
+      this.notificationGateway.server.to(`user:${member.id}`).emit("new_notification");
+    });
+
+    return newNotifications;
   }
 
   async markAsRead(id: number, userId: number) {

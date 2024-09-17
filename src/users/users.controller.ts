@@ -26,7 +26,7 @@ export class UsersController {
   @UseInterceptors(FileInterceptor("avatar"))
   @HttpCode(200)
   async uploadAvatar(
-    @Param("id", new ParseIntPipe()) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
