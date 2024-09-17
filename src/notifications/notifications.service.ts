@@ -5,14 +5,25 @@ import { Repository } from "typeorm";
 import { NotificationGateway } from "src/gateway/notification.gateway";
 import { User } from "src/users/entities/user.entity";
 import { NotificationType } from "src/shared/notification.enum";
+import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification) private notificationRepository: Repository<Notification>,
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(UserTeam) private userTeamRepository: Repository<UserTeam>,
     private readonly notificationGateway: NotificationGateway,
   ) {}
+
+  private async getTeamMembers(teamId: string): Promise<User[]> {
+    const relations = await this.userTeamRepository.find({
+      where: { team: { id: Number(teamId) } },
+      relations: { user: true },
+    });
+
+    return relations.map((relation) => relation.user);
+  }
 
   async getNotifications(userId: number) {
     return this.notificationRepository.find({
@@ -55,7 +66,7 @@ export class NotificationsService {
     return this.notificationRepository.update({ id, user: { id: userId } }, { isRead: true });
   }
 
-  notifyAccountUpdated(userId: string) {
+  async notifyAccountUpdated(userId: string) {
     this.notificationGateway.server.to(`user:${userId}`).emit("account_updated");
   }
 
@@ -63,8 +74,11 @@ export class NotificationsService {
     this.notificationGateway.server.to(`user:${userId}`).emit("new_notification");
   }
 
-  notifyTeamMemberUpdated(userId: string[], teamId: string) {
-    userId.forEach((userId) => {
+  async notifyTeamMemberUpdated(teamId: string) {
+    const teamMembers = await this.getTeamMembers(teamId);
+    const userIds = teamMembers.map((member) => member.id);
+
+    userIds.forEach((userId) => {
       this.notificationGateway.server.to(`user:${userId}`).emit("team_member_updated", teamId);
     });
   }

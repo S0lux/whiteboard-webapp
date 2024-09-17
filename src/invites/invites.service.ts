@@ -55,43 +55,21 @@ export class InvitesService {
       await this.addToTeam(invite);
       invite.status = InviteStatus.ACCEPTED;
 
-      await this.notificationService.createNotification(
+      this.notificationService.createNotification(
         invite.sender.id,
         `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
       );
 
-      const teamMemberRelations = await this.userTeamRepository.find({
-        where: { team: { id: invite.team.id } },
-        relations: {
-          user: true,
-        },
-      });
-
-      const teamMembers = teamMemberRelations.map((teamMember) => teamMember.user.id.toString());
-      this.notificationService.notifyTeamMemberUpdated(
-        teamMembers || [],
-        invite.team.id.toString(),
-      );
+      this.notificationService.notifyTeamMemberUpdated(invite.team.id.toString());
     } else if (status.toUpperCase() === InviteStatus.REJECTED) {
       invite.status = InviteStatus.REJECTED;
 
-      await this.notificationService.createNotification(
+      this.notificationService.createNotification(
         invite.sender.id,
         `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
       );
 
-      const teamMemberRelations = await this.userTeamRepository.find({
-        where: { team: { id: invite.team.id } },
-        relations: {
-          user: true,
-        },
-      });
-
-      const teamMembers = teamMemberRelations.map((teamMember) => teamMember.user.id.toString());
-      this.notificationService.notifyTeamMemberUpdated(
-        teamMembers || [],
-        invite.team.id.toString(),
-      );
+      this.notificationService.notifyTeamMemberUpdated(invite.team.id.toString());
     } else {
       throw new UnauthorizedException("Invalid invite status");
     }

@@ -178,7 +178,7 @@ export class TeamsService {
 
     const newInvite = await this.inviteRepository.save(invite);
 
-    await this.notificationService.createNotification(
+    this.notificationService.createNotification(
       recipient.id,
       `You have been invited to join ${team.name}`,
       NotificationType.INVITE,
@@ -238,17 +238,11 @@ export class TeamsService {
 
     await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: userId } });
 
-    // Notify team members to update their team members list
-    const teamMemberRelations = await this.userTeamRepository.find({
-      where: { team: { id: teamId } },
-      relations: ["user"],
-    });
-
-    const teamMembers = teamMemberRelations.map((relation) => relation.user.id.toString());
-    this.notificationService.notifyTeamMemberUpdated(teamMembers, teamId.toString());
+    this.notificationService.notifyTeamMemberUpdated(teamId.toString());
 
     // Notify the removed user
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
+
     this.notificationService.createNotification(
       userId,
       `You have been removed from the team ${team?.name}`,
