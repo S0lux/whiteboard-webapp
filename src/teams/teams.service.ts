@@ -235,20 +235,33 @@ export class TeamsService {
     return { currentMembers, pendingMembers };
   }
 
-  async removeMember(teamId: number, userId: number) {
-    const userTeam = await this.userTeamRepository.findOne({
-      where: { team: { id: teamId }, user: { id: userId } },
+  async removeMember(teamId: number, memberId: number, requesterId: number) {
+    const userToBeRemoved = await this.userTeamRepository.findOne({
+      where: { team: { id: teamId }, user: { id: memberId } },
     });
 
-    if (!userTeam) {
+    if (!userToBeRemoved) {
       throw new BadRequestException("User not found in team");
     }
 
-    if (userTeam.role === Role.OWNER) {
+    if (userToBeRemoved.role === Role.OWNER) {
       throw new BadRequestException("Owner cannot be removed");
     }
 
-    await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: userId } });
+    const requester = await this.userTeamRepository.findOne({
+      where: { team: { id: teamId }, user: { id: requesterId } },
+    });
+
+    if (!requester) {
+      throw new BadRequestException("Requester not found in team");
+    }
+
+    // Only the owner can remove members or the member itself
+    if (requester.role !== Role.OWNER && requesterId !== memberId) {
+      throw new BadRequestException("Only the owner can remove members");
+    }
+
+    await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: memberId } });
 
     this.notificationService.notifyTeamMemberUpdated(teamId.toString());
 
@@ -256,12 +269,12 @@ export class TeamsService {
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
     this.notificationService.sendNotificationUser(
-      userId,
+      memberId,
       `You have been removed from the team ${team?.name}`,
       NotificationType.BASIC,
     );
 
-    this.notificationService.notifyRemovedFromTeam(userId.toString(), teamId.toString());
+    this.notificationService.notifyRemovedFromTeam(memberId.toString(), teamId.toString());
 
     return { message: "Member removed" };
   }

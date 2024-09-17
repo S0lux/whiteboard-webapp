@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -106,13 +105,13 @@ export class TeamsController {
     return await this.teamsService.getMembers(teamId);
   }
 
-  @TeamRoles(Role.OWNER)
-  @UseGuards(TeamRoleGuard)
+  @UseGuards(AuthenticatedGuard)
   @Delete(":teamId/members/:userId")
   async removeMember(
+    @AuthUser("id", ParseIntPipe) requesterId: number,
     @Param("teamId", ParseIntPipe) teamId: number,
     @Param("userId", ParseIntPipe) userId: number,
   ) {
-    return await this.teamsService.removeMember(teamId, userId);
+    return await this.teamsService.removeMember(teamId, userId, requesterId);
   }
 }
