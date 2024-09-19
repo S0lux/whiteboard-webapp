@@ -1,6 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { UploaderService } from "../uploader.interface";
-import { v2 as cloudinary, ConfigAndUrlOptions, TransformationOptions } from "cloudinary";
+import {
+  v2 as cloudinary,
+  ConfigAndUrlOptions,
+  ImageTransformationAndTagsOptions,
+  TransformationOptions,
+  UploadApiResponse,
+} from "cloudinary";
 import { ConfigService } from "@nestjs/config";
 import { Readable } from "stream";
 
@@ -18,13 +24,13 @@ export class CloudinaryUploaderService implements UploaderService {
     file: Express.Multer.File,
     folder?: string,
     public_id?: string,
-  ): Promise<string> {
+  ): Promise<UploadApiResponse> {
     return new Promise((res, rej) => {
       const theTransformStream = cloudinary.uploader.upload_stream(
-        { folder, public_id },
+        { folder, public_id, invalidate: true },
         (err, result) => {
           if (err) return rej(err);
-          res(result!.public_id);
+          res(result!);
         },
       );
       let str = Readable.from(file.buffer);
@@ -36,7 +42,10 @@ export class CloudinaryUploaderService implements UploaderService {
     return await cloudinary.uploader.destroy(publicId);
   }
 
-  getFileUrl(publicId: string, options?: TransformationOptions | ConfigAndUrlOptions): string {
+  getFileUrl(
+    publicId: string,
+    options?: ConfigAndUrlOptions | ImageTransformationAndTagsOptions,
+  ): string {
     return cloudinary.url(publicId, options);
   }
 }

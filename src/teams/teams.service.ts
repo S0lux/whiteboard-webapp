@@ -146,18 +146,19 @@ export class TeamsService {
       throw new BadRequestException("Team not found");
     }
 
-    const logoPublicId = await this.uploaderService.uploadFile(
+    const uploadResponse = await this.uploaderService.uploadFile(
       logo,
       "team_logos",
       teamId.toString(),
     );
 
-    team.logoPublicId = logoPublicId;
-    team.logo = this.uploaderService.getFileUrl(logoPublicId, {
+    team.logoPublicId = uploadResponse!.public_id;
+    team.logo = this.uploaderService.getFileUrl(team.logoPublicId, {
       width: 256,
       aspect_ratio: 1,
       format: "webp",
       crop: "fill",
+      version: uploadResponse!.version,
     });
 
     await this.teamRepository.save(team);

@@ -112,14 +112,20 @@ export class UsersService {
       throw new BadRequestException("User not found");
     }
 
-    const result = await this.uploaderService.uploadFile(file, "avatars", `avatar_${userId}`);
-    const optimizedAvatar = await this.uploaderService.getFileUrl(result, {
+    const uploadApiResponse = await this.uploaderService.uploadFile(
+      file,
+      "avatars",
+      `avatar_${userId}`,
+    );
+
+    const optimizedAvatar = await this.uploaderService.getFileUrl(uploadApiResponse!.public_id, {
       transformation: {
         width: 256,
         aspect_ratio: "1:1",
         crop: "fill",
         format: "webp",
       },
+      version: uploadApiResponse!.version,
     });
 
     user.avatar = optimizedAvatar;

@@ -1,4 +1,4 @@
-import { ConfigAndUrlOptions, TransformationOptions } from "cloudinary";
+import { ConfigAndUrlOptions, TransformationOptions, UploadApiResponse } from "cloudinary";
 
 export interface UploaderService {
   /**
@@ -8,7 +8,11 @@ export interface UploaderService {
    * @param {string} folder
    * @param {string} public_id
    */
-  uploadFile(file: Express.Multer.File, folder?: string, public_id?: string): Promise<string>;
+  uploadFile(
+    file: Express.Multer.File,
+    folder?: string,
+    public_id?: string,
+  ): Promise<UploadApiResponse | undefined>;
   deleteFile(publicId: string): Promise<void>;
   getFileUrl(publicId: string, options?: TransformationOptions | ConfigAndUrlOptions): string;
 }
