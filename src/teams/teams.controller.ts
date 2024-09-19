@@ -8,6 +8,7 @@ import {
   Param,
   ParseFilePipe,
   ParseIntPipe,
+  Patch,
   Post,
   UploadedFile,
   UseGuards,
@@ -25,6 +26,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
 import { User } from "src/users/entities/user.entity";
 import { EmailInvitationService } from "src/email/email-invitation/email-invitation.service";
+import { UpdateTeamDto, UpdateTeamSchema } from "./dtos/UpdateTeamDto";
 
 @Controller("teams")
 export class TeamsController {
@@ -113,5 +115,15 @@ export class TeamsController {
     @Param("userId", ParseIntPipe) userId: number,
   ) {
     return await this.teamsService.removeMember(teamId, userId, requesterId);
+  }
+
+  @TeamRoles(Role.OWNER)
+  @UseGuards(TeamRoleGuard)
+  @Patch(":teamId/")
+  async updateTeam(
+    @Param("teamId", ParseIntPipe) teamId: number,
+    @Body(new ZodValidationPipe(UpdateTeamSchema)) body: UpdateTeamDto,
+  ) {
+    return await this.teamsService.updateTeam({ teamId, ...body });
   }
 }

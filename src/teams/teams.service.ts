@@ -163,6 +163,8 @@ export class TeamsService {
 
     await this.teamRepository.save(team);
 
+    this.notificationService.sendEvent(teamId, NotificationTarget.TEAM, Event.TEAM_UPDATED);
+
     return { message: "Logo uploaded" };
   }
 
@@ -333,11 +335,11 @@ export class TeamsService {
       throw new NotFoundException("Team not found");
     }
 
-    if (newName) {
+    if (newName !== team.name) {
       updateName = this.teamRepository.update({ id: teamId }, { name: newName });
     }
 
-    if (updateDescription) {
+    if (updateDescription !== team.description) {
       updateDescription = this.teamRepository.update(
         { id: Number(teamId) },
         { description: newDescription },
@@ -346,13 +348,17 @@ export class TeamsService {
 
     await Promise.all([updateName, updateDescription]);
 
-    if (newName) {
-      this.notificationService.sendEvent(
+    if (newName !== team.name) {
+      this.notificationService.sendNotification(
         teamId,
         NotificationTarget.TEAM,
-        Event.TEAM_UPDATED,
-        newName,
+        NotificationType.BASIC,
+        {
+          content: `Team name has been updated to ${newName} (was ${team.name})`,
+        },
       );
     }
+
+    this.notificationService.sendEvent(teamId, NotificationTarget.TEAM, Event.TEAM_UPDATED);
   }
 }
