@@ -2,10 +2,10 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { createClient } from "redis";
 import { ConfigService } from "@nestjs/config";
+import { SocketIOAdapter } from "./shared/socket-io.adapter";
 import RedisStore from "connect-redis";
 import session from "express-session";
 import passport from "passport";
-import { SocketIOAdapter } from "./shared/socket-io.adapter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

@@ -1,11 +1,13 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { forwardRef, Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Notification } from "./entities/notification.entity";
 import { Repository } from "typeorm";
 import { NotificationGateway } from "src/gateway/notification.gateway";
 import { User } from "src/users/entities/user.entity";
-import { NotificationType } from "src/shared/notification.enum";
+import { NotificationType } from "src/shared/enums/notification.enum";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
+import { Event } from "src/shared/enums/event.enum";
+import { NotificationTarget } from "src/shared/enums/notification-target.enum";
 
 @Injectable()
 export class NotificationsService {
@@ -16,13 +18,8 @@ export class NotificationsService {
     private readonly notificationGateway: NotificationGateway,
   ) {}
 
-  private async getTeamMembers(teamId: string): Promise<User[]> {
-    const relations = await this.userTeamRepository.find({
-      where: { team: { id: Number(teamId) } },
-      relations: { user: true },
-    });
-
-    return relations.map((relation) => relation.user);
+  async removeUserFromRoom(userId: number, teamId: number) {
+    this.notificationGateway.removeUserFromTeamRoom(userId, teamId);
   }
 
   async getNotifications(userId: number) {
@@ -34,92 +31,81 @@ export class NotificationsService {
     });
   }
 
-  async sendNotificationUser(
+  private async createNotification(
     userId: number,
-    content: string,
-    type: NotificationType = NotificationType.BASIC,
-    inviteId?: number,
+    type: NotificationType,
+    data: { content: string; inviteId?: number },
   ) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
-    this.notificationGateway.server.to;
-
     if (!user) {
-      throw new Error("User not found");
+      throw new InternalServerErrorException("User not found");
     }
+
+    if (type === NotificationType.INVITE && !data.inviteId)
+      throw new InternalServerErrorException("Invite ID is required");
 
     const notification = this.notificationRepository.create({
-      content,
-      type,
       user,
-      inviteId,
+      type,
+      content: data.content,
+      inviteId: data.inviteId,
     });
 
-    const newNotification = await this.notificationRepository.save(notification);
+    await this.notificationRepository.save(notification);
 
-    this.notificationGateway.server.to(`user:${userId}`).emit("new_notification");
-
-    return newNotification;
+    return notification;
   }
 
-  async sendNotificationTeam(
-    teamId: number,
-    content: string,
-    type: NotificationType = NotificationType.BASIC,
-    inviteId?: number,
+  async sendNotification(
+    targetId: number,
+    targetType: NotificationTarget,
+    type: NotificationType,
+    data: { content: string; inviteId?: number },
   ) {
-    const teamMembers = await this.getTeamMembers(teamId.toString());
-
-    if (teamMembers.length === 0) {
-      throw new InternalServerErrorException("Team not found");
+    if (targetType === NotificationTarget.USER) {
+      const notification = await this.createNotification(targetId, type, data);
+      this.notificationGateway.server
+        .to(`user:${targetId}`)
+        .emit(Event.NEW_NOTIFICATION, notification);
     }
 
-    const notifications = teamMembers.map((member) => {
-      return this.notificationRepository.create({
-        content,
-        type,
-        user: member,
-        inviteId,
+    if (targetType === NotificationTarget.TEAM) {
+      const userTeams = await this.userTeamRepository.find({
+        where: { team: { id: targetId } },
+        relations: ["user"],
       });
-    });
 
-    const newNotifications = await this.notificationRepository.save(notifications);
+      const notificationRequests = userTeams.map((userTeam) =>
+        this.createNotification(userTeam.user.id, type, data),
+      );
+      await Promise.all(notificationRequests);
 
-    teamMembers.forEach((member) => {
-      this.notificationGateway.server.to(`user:${member.id}`).emit("new_notification");
-    });
+      this.notificationGateway.server.to(`team:${targetId}`).emit(Event.NEW_NOTIFICATION);
+    }
+  }
 
-    if (type === NotificationType.DISBAND) {
-      teamMembers.forEach((member) => {
-        this.notifyRemovedFromTeam(member.id.toString(), teamId.toString());
-      });
+  async sendEvent(targetId: number, targetType: NotificationTarget, eventType: Event, data?: any) {
+    if (targetType === NotificationTarget.USER) {
+      if (data) this.notificationGateway.server.to(`user:${targetId}`).emit(eventType, data);
+      else this.notificationGateway.server.to(`user:${targetId}`).emit(eventType);
     }
 
-    return newNotifications;
+    if (targetType === NotificationTarget.TEAM) {
+      if (data)
+        this.notificationGateway.server.to(`team:${targetId.toString()}`).emit(eventType, data);
+      else this.notificationGateway.server.to(`team:${targetId.toString()}`).emit(eventType);
+    }
   }
 
-  async markAsRead(id: number, userId: number) {
-    return this.notificationRepository.update({ id, user: { id: userId } }, { isRead: true });
-  }
+  async markAsRead(notificationId: number, userId: number) {
+    await this.notificationRepository.update(
+      { id: notificationId, user: { id: userId } },
+      { isRead: true },
+    );
 
-  async notifyAccountUpdated(userId: string) {
-    this.notificationGateway.server.to(`user:${userId}`).emit("account_updated");
-  }
-
-  notifyNewNotification(userId: string) {
-    this.notificationGateway.server.to(`user:${userId}`).emit("new_notification");
-  }
-
-  async notifyTeamMemberUpdated(teamId: string) {
-    const teamMembers = await this.getTeamMembers(teamId);
-    const userIds = teamMembers.map((member) => member.id);
-
-    userIds.forEach((userId) => {
-      this.notificationGateway.server.to(`user:${userId}`).emit("team_member_updated", teamId);
+    return this.notificationRepository.findOne({
+      where: { id: notificationId, user: { id: userId } },
     });
-  }
-
-  notifyRemovedFromTeam(userId: string, teamId: string) {
-    this.notificationGateway.server.to(`user:${userId}`).emit("removed_from_team", teamId);
   }
 }

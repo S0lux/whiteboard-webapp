@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Team } from "../../teams/entities/team.entity";
-import { InviteStatus } from "src/shared/invite-status.enum";
+import { InviteStatus } from "src/shared/enums/invite-status.enum";
 
 @Entity({ name: "invites" })
 export class Invite {

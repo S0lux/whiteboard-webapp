@@ -13,7 +13,7 @@ import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Invite } from "src/invites/entities/invite.entity";
 import { Notification } from "src/notifications/entities/notification.entity";
-import { Plan } from "src/shared/plan.enum";
+import { Plan } from "src/shared/enums/plan.enum";
 
 @Entity({ name: "users" })
 export class User {

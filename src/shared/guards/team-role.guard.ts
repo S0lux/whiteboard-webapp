@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "../decorators/roles.decorator";
-import { Role } from "../role.enum";
+import { Role } from "../enums/role.enum";
 import { TeamsService } from "src/teams/teams.service";
 
 @Injectable()

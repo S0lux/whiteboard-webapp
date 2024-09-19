@@ -6,9 +6,11 @@ import {
   ManyToMany,
   BeforeInsert,
   OneToMany,
+  AfterUpdate,
 } from "typeorm";
 import { UserTeam } from "./user-team-relation.entity";
 import { Invite } from "../../invites/entities/invite.entity";
+import { Exclude, Transform } from "class-transformer";
 
 @Entity({ name: "teams" })
 export class Team {
@@ -21,7 +23,10 @@ export class Team {
   @Column({ nullable: true })
   description: string;
 
-  @Column()
+  @Column({ nullable: true })
+  logoPublicId: string;
+
+  @Column({ nullable: true })
   logo: string;
 
   @ManyToMany(() => User, (user) => user.teams)

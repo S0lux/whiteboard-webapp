@@ -2,7 +2,10 @@ import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/co
 import { InjectRepository } from "@nestjs/typeorm";
 import { Invite } from "src/invites/entities/invite.entity";
 import { NotificationsService } from "src/notifications/notifications.service";
-import { InviteStatus } from "src/shared/invite-status.enum";
+import { Event } from "src/shared/enums/event.enum";
+import { InviteStatus } from "src/shared/enums/invite-status.enum";
+import { NotificationTarget } from "src/shared/enums/notification-target.enum";
+import { NotificationType } from "src/shared/enums/notification.enum";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Repository } from "typeorm";
@@ -55,21 +58,39 @@ export class InvitesService {
       await this.addToTeam(invite);
       invite.status = InviteStatus.ACCEPTED;
 
-      this.notificationService.sendNotificationUser(
+      this.notificationService.sendNotification(
         invite.sender.id,
-        `${invite.recipient.username} has accepted your invitation to join ${invite.team.name}`,
+        NotificationTarget.USER,
+        NotificationType.BASIC,
+        {
+          content: `${invite.recipient.username} has accepted your invitation to join ${invite.team.name}`,
+        },
       );
 
-      this.notificationService.notifyTeamMemberUpdated(invite.team.id.toString());
+      this.notificationService.sendEvent(
+        invite.team.id,
+        NotificationTarget.TEAM,
+        Event.TEAM_MEMBER_UPDATED,
+        invite.team.id.toString(),
+      );
     } else if (status.toUpperCase() === InviteStatus.REJECTED) {
       invite.status = InviteStatus.REJECTED;
 
-      this.notificationService.sendNotificationUser(
+      this.notificationService.sendNotification(
         invite.sender.id,
-        `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
+        NotificationTarget.USER,
+        NotificationType.BASIC,
+        {
+          content: `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
+        },
       );
 
-      this.notificationService.notifyTeamMemberUpdated(invite.team.id.toString());
+      this.notificationService.sendEvent(
+        invite.team.id,
+        NotificationTarget.TEAM,
+        Event.TEAM_MEMBER_UPDATED,
+        invite.team.id.toString(),
+      );
     } else {
       throw new UnauthorizedException("Invalid invite status");
     }

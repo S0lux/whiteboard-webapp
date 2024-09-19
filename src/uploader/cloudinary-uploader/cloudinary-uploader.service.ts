@@ -36,10 +36,7 @@ export class CloudinaryUploaderService implements UploaderService {
     return await cloudinary.uploader.destroy(publicId);
   }
 
-  async getFileUrl(
-    publicId: string,
-    options?: TransformationOptions | ConfigAndUrlOptions,
-  ): Promise<string> {
+  getFileUrl(publicId: string, options?: TransformationOptions | ConfigAndUrlOptions): string {
     return cloudinary.url(publicId, options);
   }
 }

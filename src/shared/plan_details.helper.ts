@@ -1,4 +1,4 @@
-import { Plan } from "./plan.enum";
+import { Plan } from "./enums/plan.enum";
 
 export function getPlanDetails(plan: Plan): { maxOwnedTeams: number; maxMembersPerTeam: number } {
   switch (plan) {

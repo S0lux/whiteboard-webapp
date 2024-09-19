@@ -20,7 +20,7 @@ import { ZodValidationPipe } from "src/shared/pipes/zod-validation.pipe";
 import { AuthUser } from "src/shared/decorators/user.decorator";
 import { TeamRoles } from "src/shared/decorators/roles.decorator";
 import { TeamRoleGuard } from "src/shared/guards/team-role.guard";
-import { Role } from "src/shared/role.enum";
+import { Role } from "src/shared/enums/role.enum";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
 import { User } from "src/users/entities/user.entity";

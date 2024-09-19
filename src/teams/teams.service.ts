@@ -1,17 +1,26 @@
-import { BadRequestException, ConflictException, Inject, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Team } from "./entities/team.entity";
 import { In, Repository } from "typeorm";
 import { CreateTeamDto } from "./dtos/CreateTeamDto";
 import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
-import { Role } from "../shared/role.enum";
+import { Role } from "../shared/enums/role.enum";
 import { UploaderService } from "src/uploader/uploader.interface";
 import { Invite } from "../invites/entities/invite.entity";
-import { InviteStatus } from "src/shared/invite-status.enum";
+import { InviteStatus } from "src/shared/enums/invite-status.enum";
 import { getPlanDetails } from "src/shared/plan_details.helper";
 import { NotificationsService } from "src/notifications/notifications.service";
-import { NotificationType } from "src/shared/notification.enum";
+import { NotificationType } from "src/shared/enums/notification.enum";
+import { Event } from "src/shared/enums/event.enum";
+import { NotFoundError } from "rxjs";
+import { NotificationTarget } from "src/shared/enums/notification-target.enum";
 
 @Injectable()
 export class TeamsService {
@@ -112,15 +121,21 @@ export class TeamsService {
     }
 
     // This needs to be done before deleting the team
-    await this.notificationService.sendNotificationTeam(
+    await this.notificationService.sendNotification(
       teamId,
-      `${oldTeam.name} has been disbanded.`,
-      NotificationType.DISBAND,
+      NotificationTarget.TEAM,
+      NotificationType.BASIC,
+      {
+        content: `${oldTeam.name} has been disbanded`,
+      },
     );
+
+    this.notificationService.sendEvent(teamId, NotificationTarget.TEAM, Event.REMOVED_FROM_TEAM);
 
     await this.userTeamRepository.delete({ team: { id: teamId } });
     await this.inviteRepository.delete({ team: { id: teamId } });
     await this.teamRepository.delete({ id: teamId });
+    await this.uploaderService.deleteFile(oldTeam.logoPublicId);
 
     return { message: "Team deleted" };
   }
@@ -136,16 +151,15 @@ export class TeamsService {
       "team_logos",
       teamId.toString(),
     );
-    const optimizedLogoUrl = await this.uploaderService.getFileUrl(logoPublicId, {
-      transformation: {
-        width: 256,
-        aspect_ratio: "1:1",
-        crop: "fill",
-        format: "webp",
-      },
+
+    team.logoPublicId = logoPublicId;
+    team.logo = this.uploaderService.getFileUrl(logoPublicId, {
+      width: 256,
+      aspect_ratio: 1,
+      format: "webp",
+      crop: "fill",
     });
 
-    team.logo = optimizedLogoUrl;
     await this.teamRepository.save(team);
 
     return { message: "Logo uploaded" };
@@ -194,11 +208,14 @@ export class TeamsService {
 
     const newInvite = await this.inviteRepository.save(invite);
 
-    this.notificationService.sendNotificationUser(
+    this.notificationService.sendNotification(
       recipient.id,
-      `You have been invited to join ${team.name}`,
+      NotificationTarget.USER,
       NotificationType.INVITE,
-      newInvite.id,
+      {
+        content: `You have been invited to join ${team.name}`,
+        inviteId: newInvite.id,
+      },
     );
 
     return newInvite;
@@ -267,19 +284,74 @@ export class TeamsService {
 
     await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: memberId } });
 
-    this.notificationService.notifyTeamMemberUpdated(teamId.toString());
+    this.notificationService.removeUserFromRoom(memberId, teamId);
+    this.notificationService.sendEvent(
+      teamId,
+      NotificationTarget.TEAM,
+      Event.TEAM_MEMBER_UPDATED,
+      teamId.toString(),
+    );
 
     // Notify the removed user
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
-    this.notificationService.sendNotificationUser(
+    this.notificationService.sendNotification(
       memberId,
-      `You have been removed from the team ${team?.name}`,
+      NotificationTarget.USER,
       NotificationType.BASIC,
+      {
+        content: `You have been removed from ${team?.name}`,
+      },
     );
 
-    this.notificationService.notifyRemovedFromTeam(memberId.toString(), teamId.toString());
+    this.notificationService.sendEvent(
+      memberId,
+      NotificationTarget.USER,
+      Event.REMOVED_FROM_TEAM,
+      team?.id.toString(),
+    );
 
     return { message: "Member removed" };
+  }
+
+  async updateTeam({
+    teamId,
+    newName,
+    newDescription,
+  }: {
+    teamId: number;
+    newName?: string;
+    newDescription?: string;
+  }) {
+    let updateName;
+    let updateDescription;
+
+    const team = await this.teamRepository.findOne({ where: { id: teamId } });
+
+    if (!team) {
+      throw new NotFoundException("Team not found");
+    }
+
+    if (newName) {
+      updateName = this.teamRepository.update({ id: teamId }, { name: newName });
+    }
+
+    if (updateDescription) {
+      updateDescription = this.teamRepository.update(
+        { id: Number(teamId) },
+        { description: newDescription },
+      );
+    }
+
+    await Promise.all([updateName, updateDescription]);
+
+    if (newName) {
+      this.notificationService.sendEvent(
+        teamId,
+        NotificationTarget.TEAM,
+        Event.TEAM_UPDATED,
+        newName,
+      );
+    }
   }
 }
