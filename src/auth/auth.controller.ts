@@ -23,6 +23,10 @@ import { AuthUser } from "src/shared/decorators/user.decorator";
 import { EmailVerificationService } from "src/email/email-verification/email-verification.service";
 import { EmailPasswordResetService } from "src/email/email-password-reset/email-password-reset.service";
 import { Response } from "express";
+import { NotificationsService } from "src/notifications/notifications.service";
+import { NotificationTarget } from "src/shared/enums/notification-target.enum";
+import { NotificationType } from "src/shared/enums/notification.enum";
+import { Event } from "src/shared/enums/event.enum";
 
 @Controller("auth")
 export class AuthController {
@@ -30,6 +34,7 @@ export class AuthController {
     private readonly usersService: UsersService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly emailPasswordResetService: EmailPasswordResetService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @UseGuards(LocalAuthGuard)
@@ -82,7 +87,24 @@ export class AuthController {
   @HttpCode(200)
   async verifyEmail(@Body("token") token: string) {
     if (!token) throw new BadRequestException("Token is required");
-    return await this.emailVerificationService.verifyEmailToken(token);
+    const tokenInfo = await this.emailVerificationService.verifyEmailToken(token);
+
+    this.notificationsService.sendNotification(
+      tokenInfo.userId,
+      NotificationTarget.USER,
+      NotificationType.BASIC,
+      {
+        content: "Your email has been verified.",
+      },
+    );
+
+    this.notificationsService.sendEvent(
+      tokenInfo.userId,
+      NotificationTarget.USER,
+      Event.ACCOUNT_UPDATED,
+    );
+
+    return { message: "Email successfully verified" };
   }
 
   @UseGuards(AuthenticatedGuard)

@@ -19,7 +19,6 @@ import { getPlanDetails } from "src/shared/plan_details.helper";
 import { NotificationsService } from "src/notifications/notifications.service";
 import { NotificationType } from "src/shared/enums/notification.enum";
 import { Event } from "src/shared/enums/event.enum";
-import { NotFoundError } from "rxjs";
 import { NotificationTarget } from "src/shared/enums/notification-target.enum";
 
 @Injectable()
@@ -120,24 +119,12 @@ export class TeamsService {
       throw new BadRequestException("Team not found");
     }
 
-    // This needs to be done before deleting the team
-    await this.notificationService.sendNotification(
-      teamId,
-      NotificationTarget.TEAM,
-      NotificationType.BASIC,
-      {
-        content: `${oldTeam.name} has been disbanded`,
-      },
-    );
-
-    this.notificationService.sendEvent(teamId, NotificationTarget.TEAM, Event.REMOVED_FROM_TEAM);
-
     await this.userTeamRepository.delete({ team: { id: teamId } });
     await this.inviteRepository.delete({ team: { id: teamId } });
     await this.teamRepository.delete({ id: teamId });
-    await this.uploaderService.deleteFile(oldTeam.logoPublicId);
+    if (oldTeam.logoPublicId) await this.uploaderService.deleteFile(oldTeam.logoPublicId);
 
-    return { message: "Team deleted" };
+    return oldTeam;
   }
 
   async setLogo(teamId: number, logo: Express.Multer.File) {

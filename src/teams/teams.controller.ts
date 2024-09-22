@@ -27,12 +27,17 @@ import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
 import { User } from "src/users/entities/user.entity";
 import { EmailInvitationService } from "src/email/email-invitation/email-invitation.service";
 import { UpdateTeamDto, UpdateTeamSchema } from "./dtos/UpdateTeamDto";
+import { NotificationsService } from "src/notifications/notifications.service";
+import { Event } from "src/shared/enums/event.enum";
+import { NotificationTarget } from "src/shared/enums/notification-target.enum";
+import { NotificationType } from "src/shared/enums/notification.enum";
 
 @Controller("teams")
 export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
     private readonly emailInvitationService: EmailInvitationService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @UseGuards(AuthenticatedGuard)
@@ -54,7 +59,27 @@ export class TeamsController {
   @UseGuards(TeamRoleGuard)
   @Delete(":teamId")
   async delete(@Param("teamId", ParseIntPipe) teamId: number) {
-    return await this.teamsService.deleteTeam(teamId);
+    const oldTeam = await this.teamsService.deleteTeam(teamId);
+
+    this.notificationsService.sendNotification(
+      teamId,
+      NotificationTarget.TEAM,
+      NotificationType.BASIC,
+      {
+        content: `${oldTeam.name} has been disbanded`,
+      },
+    );
+
+    this.notificationsService.sendEvent(
+      teamId,
+      NotificationTarget.TEAM,
+      Event.REMOVED_FROM_TEAM,
+      teamId.toString(),
+    );
+
+    this.notificationsService.disbandRoom(teamId.toString());
+
+    return { message: "Team has been deleted" };
   }
 
   @TeamRoles(Role.OWNER)

@@ -2,13 +2,12 @@ import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/co
 import { InjectRepository } from "@nestjs/typeorm";
 import { Invite } from "src/invites/entities/invite.entity";
 import { NotificationsService } from "src/notifications/notifications.service";
-import { Event } from "src/shared/enums/event.enum";
 import { InviteStatus } from "src/shared/enums/invite-status.enum";
-import { NotificationTarget } from "src/shared/enums/notification-target.enum";
-import { NotificationType } from "src/shared/enums/notification.enum";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Repository } from "typeorm";
+import { InviteReplyStrategy } from "./invites-reply-strategy.interface";
+import { AcceptInviteStrategy, RejectInviteStrategy } from "./invites-reply.strategies";
 
 @Injectable()
 export class InvitesService {
@@ -17,9 +16,9 @@ export class InvitesService {
     private readonly inviteRepository: Repository<Invite>,
     @InjectRepository(UserTeam)
     private readonly userTeamRepository: Repository<UserTeam>,
-    @InjectRepository(Team)
-    private readonly teamRepository: Repository<Team>,
     private readonly notificationService: NotificationsService,
+    private readonly acceptInviteStrategy: AcceptInviteStrategy,
+    private readonly rejectInviteStrategy: RejectInviteStrategy,
   ) {}
 
   async getInvite(inviteId: number, requesterId: number) {
@@ -49,64 +48,35 @@ export class InvitesService {
 
   async replyToInvite(inviteId: number, requesterId: number, status: string) {
     const invite = await this.getInvite(inviteId, requesterId);
+    this.validateInviteStatus(invite);
+    this.validateReplyStatus(status);
 
-    if (invite.status !== InviteStatus.PENDING) {
-      throw new UnauthorizedException("This invite has already been replied to");
-    }
-
-    if (status.toUpperCase() === InviteStatus.ACCEPTED) {
-      await this.addToTeam(invite);
-      invite.status = InviteStatus.ACCEPTED;
-
-      this.notificationService.sendNotification(
-        invite.sender.id,
-        NotificationTarget.USER,
-        NotificationType.BASIC,
-        {
-          content: `${invite.recipient.username} has accepted your invitation to join ${invite.team.name}`,
-        },
-      );
-
-      this.notificationService.sendEvent(
-        invite.team.id,
-        NotificationTarget.TEAM,
-        Event.TEAM_MEMBER_UPDATED,
-        invite.team.id.toString(),
-      );
-    } else if (status.toUpperCase() === InviteStatus.REJECTED) {
-      invite.status = InviteStatus.REJECTED;
-
-      this.notificationService.sendNotification(
-        invite.sender.id,
-        NotificationTarget.USER,
-        NotificationType.BASIC,
-        {
-          content: `${invite.recipient.username} has rejected your invitation to join ${invite.team.name}`,
-        },
-      );
-
-      this.notificationService.sendEvent(
-        invite.team.id,
-        NotificationTarget.TEAM,
-        Event.TEAM_MEMBER_UPDATED,
-        invite.team.id.toString(),
-      );
-    } else {
-      throw new UnauthorizedException("Invalid invite status");
-    }
+    const replyStrategy = this.getReplyStrategy(status);
+    await replyStrategy.execute(invite);
 
     await this.inviteRepository.save(invite);
 
     return { message: "Invite replied to successfully" };
   }
 
-  private async addToTeam(invite: Invite) {
-    const userTeam = new UserTeam();
-    userTeam.user = invite.recipient;
-    userTeam.team = invite.team;
-    userTeam.role = "MEMBER";
+  private validateInviteStatus(invite: Invite) {
+    if (invite.status !== InviteStatus.PENDING) {
+      throw new UnauthorizedException("This invite has already been replied to");
+    }
+  }
 
-    const newUserTeam = await this.userTeamRepository.save(userTeam);
-    return newUserTeam;
+  private validateReplyStatus(status: string) {
+    const validStatuses = [InviteStatus.ACCEPTED, InviteStatus.REJECTED];
+    if (!validStatuses.includes(status.toUpperCase() as InviteStatus)) {
+      throw new UnauthorizedException("Invalid invite status");
+    }
+  }
+
+  private getReplyStrategy(status: string): InviteReplyStrategy {
+    const strategies = {
+      [InviteStatus.ACCEPTED]: this.acceptInviteStrategy,
+      [InviteStatus.REJECTED]: this.rejectInviteStrategy,
+    };
+    return strategies[status.toUpperCase()];
   }
 }

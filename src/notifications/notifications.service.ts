@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Notification } from "./entities/notification.entity";
 import { Repository } from "typeorm";
@@ -18,8 +18,16 @@ export class NotificationsService {
     private readonly notificationGateway: NotificationGateway,
   ) {}
 
-  async removeUserFromRoom(userId: number, teamId: number) {
+  joinUserToRoom(userId: number, teamId: number) {
+    this.notificationGateway.server.in(`user:${userId}`).socketsJoin(`team:${teamId}`);
+  }
+
+  removeUserFromRoom(userId: number, teamId: number) {
     this.notificationGateway.removeUserFromTeamRoom(userId, teamId);
+  }
+
+  disbandRoom(roomId: string) {
+    this.notificationGateway.server.in(roomId).socketsLeave(roomId);
   }
 
   async getNotifications(userId: number) {
@@ -71,13 +79,9 @@ export class NotificationsService {
     }
 
     if (targetType === NotificationTarget.TEAM) {
-      const userTeams = await this.userTeamRepository.find({
-        where: { team: { id: targetId } },
-        relations: ["user"],
-      });
-
-      const notificationRequests = userTeams.map((userTeam) =>
-        this.createNotification(userTeam.user.id, type, data),
+      const userIds = await this.notificationGateway.getUserIdsInTeamRoom(targetId);
+      const notificationRequests = userIds.map((userId) =>
+        this.createNotification(userId, type, data),
       );
       await Promise.all(notificationRequests);
 
@@ -92,9 +96,8 @@ export class NotificationsService {
     }
 
     if (targetType === NotificationTarget.TEAM) {
-      if (data)
-        this.notificationGateway.server.to(`team:${targetId.toString()}`).emit(eventType, data);
-      else this.notificationGateway.server.to(`team:${targetId.toString()}`).emit(eventType);
+      if (data) this.notificationGateway.server.to(`team:${targetId}`).emit(eventType, data);
+      else this.notificationGateway.server.to(`team:${targetId}`).emit(eventType);
     }
   }
 

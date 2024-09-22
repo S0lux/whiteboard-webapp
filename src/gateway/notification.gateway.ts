@@ -24,7 +24,7 @@ export class NotificationGateway implements OnModuleInit {
 
         const teams = await this.getUserTeams(user.id);
         teams.forEach((team) => {
-          socket.join(`team:${team.id.toString()}`);
+          socket.join(`team:${team.id}`);
         });
       }
     });
@@ -45,5 +45,22 @@ export class NotificationGateway implements OnModuleInit {
     });
 
     return relations.map((relation) => relation.team);
+  }
+
+  async getUserIdsInTeamRoom(teamId: number): Promise<number[]> {
+    const sockets = await this.server.in(`team:${teamId}`).fetchSockets();
+    const userIds = new Set<number>();
+
+    for (const socket of sockets) {
+      const userRoom = Array.from(socket.rooms).find((room) => room.startsWith("user:"));
+      if (userRoom) {
+        const userId = parseInt(userRoom.split(":")[1], 10);
+        if (!isNaN(userId)) {
+          userIds.add(userId);
+        }
+      }
+    }
+
+    return Array.from(userIds);
   }
 }
