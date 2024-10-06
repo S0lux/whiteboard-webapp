@@ -56,7 +56,8 @@ export class TeamsService {
     userTeams.team = newTeam;
     userTeams.role = Role.OWNER;
 
-    await this.userTeamRepository.save(userTeams);
+    const result = await this.userTeamRepository.save(userTeams);
+    this.notificationService.joinUserToRoom(creator.id, result.team.id);
 
     return newTeam;
   }
@@ -336,7 +337,7 @@ export class TeamsService {
     await Promise.all([updateName, updateDescription]);
 
     if (newName !== team.name) {
-      this.notificationService.sendNotification(
+      await this.notificationService.sendNotification(
         teamId,
         NotificationTarget.TEAM,
         NotificationType.BASIC,

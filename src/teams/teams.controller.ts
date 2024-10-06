@@ -92,7 +92,7 @@ export class TeamsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 256 * 1024 }),
-          new FileTypeValidator({ fileType: ".(png|jpeg|jpg)" }),
+          new FileTypeValidator({ fileType: ".(png|jpeg|jpg|webp)" }),
         ],
       }),
     )

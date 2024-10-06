@@ -8,6 +8,7 @@ import {
   ParseFilePipe,
   ParseIntPipe,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -22,7 +23,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @UseGuards(AuthenticatedGuard)
-  @Post(":id/avatar")
+  @Put(":id/avatar")
   @UseInterceptors(FileInterceptor("avatar"))
   @HttpCode(200)
   async uploadAvatar(
@@ -31,7 +32,7 @@ export class UsersController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 256 * 1024 }),
-          new FileTypeValidator({ fileType: ".(png|jpeg|jpg)" }),
+          new FileTypeValidator({ fileType: ".(png|jpeg|jpg|webp)" }),
         ],
       }),
     )

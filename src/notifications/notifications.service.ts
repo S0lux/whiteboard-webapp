@@ -79,7 +79,15 @@ export class NotificationsService {
     }
 
     if (targetType === NotificationTarget.TEAM) {
-      const userIds = await this.notificationGateway.getUserIdsInTeamRoom(targetId);
+      const users = await this.userTeamRepository.find({
+        where: {
+          team: { id: targetId },
+        },
+        relations: ["user"],
+      });
+
+      const userIds = users.map((user) => user.user.id);
+
       const notificationRequests = userIds.map((userId) =>
         this.createNotification(userId, type, data),
       );
