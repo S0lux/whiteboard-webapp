@@ -23,10 +23,7 @@ import { AuthUser } from "src/shared/decorators/user.decorator";
 import { EmailVerificationService } from "src/email/email-verification/email-verification.service";
 import { EmailPasswordResetService } from "src/email/email-password-reset/email-password-reset.service";
 import { Response } from "express";
-import { NotificationsService } from "src/notifications/notifications.service";
-import { NotificationTarget } from "src/shared/enums/notification-target.enum";
-import { NotificationType } from "src/shared/enums/notification.enum";
-import { Event } from "src/shared/enums/event.enum";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Controller("auth")
 export class AuthController {
@@ -34,7 +31,7 @@ export class AuthController {
     private readonly usersService: UsersService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly emailPasswordResetService: EmailPasswordResetService,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @UseGuards(LocalAuthGuard)
@@ -89,20 +86,8 @@ export class AuthController {
     if (!token) throw new BadRequestException("Token is required");
     const tokenInfo = await this.emailVerificationService.verifyEmailToken(token);
 
-    this.notificationsService.sendNotification(
-      tokenInfo.userId,
-      NotificationTarget.USER,
-      NotificationType.BASIC,
-      {
-        content: "Your email has been verified.",
-      },
-    );
-
-    this.notificationsService.sendEvent(
-      tokenInfo.userId,
-      NotificationTarget.USER,
-      Event.ACCOUNT_UPDATED,
-    );
+    this.eventEmitter.emit("account.verifiedEmail", { userId: tokenInfo.userId });
+    this.eventEmitter.emit("account.updated", { userId: tokenInfo.userId });
 
     return { message: "Email successfully verified" };
   }

@@ -20,6 +20,7 @@ import { NotificationsService } from "src/notifications/notifications.service";
 import { NotificationType } from "src/shared/enums/notification.enum";
 import { Event } from "src/shared/enums/event.enum";
 import { NotificationTarget } from "src/shared/enums/notification-target.enum";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class TeamsService {
@@ -34,7 +35,7 @@ export class TeamsService {
     private readonly inviteRepository: Repository<Invite>,
     @Inject(UploaderService)
     private readonly uploaderService: UploaderService,
-    private readonly notificationService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
@@ -57,7 +58,7 @@ export class TeamsService {
     userTeams.role = Role.OWNER;
 
     const result = await this.userTeamRepository.save(userTeams);
-    this.notificationService.joinUserToRoom(creator.id, result.team.id);
+    this.eventEmitter.emit("team.created", { teamId: result.id, userId: user.id });
 
     return newTeam;
   }
@@ -120,6 +121,8 @@ export class TeamsService {
       throw new BadRequestException("Team not found");
     }
 
+    this.eventEmitter.emit("team.disbanded", { teamId, teamName: oldTeam.name });
+
     await this.userTeamRepository.delete({ team: { id: teamId } });
     await this.inviteRepository.delete({ team: { id: teamId } });
     await this.teamRepository.delete({ id: teamId });
@@ -150,8 +153,7 @@ export class TeamsService {
     });
 
     await this.teamRepository.save(team);
-
-    this.notificationService.sendEvent(teamId, NotificationTarget.TEAM, Event.TEAM_UPDATED);
+    this.eventEmitter.emit("team.updated", { teamId });
 
     return { message: "Logo uploaded" };
   }
@@ -199,15 +201,11 @@ export class TeamsService {
 
     const newInvite = await this.inviteRepository.save(invite);
 
-    this.notificationService.sendNotification(
-      recipient.id,
-      NotificationTarget.USER,
-      NotificationType.INVITE,
-      {
-        content: `You have been invited to join ${team.name}`,
-        inviteId: newInvite.id,
-      },
-    );
+    this.eventEmitter.emit("invite.created", {
+      inviteId: newInvite.id,
+      userId: recipient.id,
+      teamName: team.name,
+    });
 
     return newInvite;
   }
@@ -274,33 +272,13 @@ export class TeamsService {
     }
 
     await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: memberId } });
-
-    this.notificationService.removeUserFromRoom(memberId, teamId);
-    this.notificationService.sendEvent(
-      teamId,
-      NotificationTarget.TEAM,
-      Event.TEAM_MEMBER_UPDATED,
-      teamId.toString(),
-    );
-
-    // Notify the removed user
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
-    this.notificationService.sendNotification(
-      memberId,
-      NotificationTarget.USER,
-      NotificationType.BASIC,
-      {
-        content: `You have been removed from ${team?.name}`,
-      },
-    );
-
-    this.notificationService.sendEvent(
-      memberId,
-      NotificationTarget.USER,
-      Event.REMOVED_FROM_TEAM,
-      team?.id.toString(),
-    );
+    this.eventEmitter.emit("team.removedMember", {
+      teamId,
+      userId: memberId,
+      teamName: team?.name || "Unknown",
+    });
 
     return { message: "Member removed" };
   }
@@ -337,16 +315,9 @@ export class TeamsService {
     await Promise.all([updateName, updateDescription]);
 
     if (newName !== team.name) {
-      await this.notificationService.sendNotification(
-        teamId,
-        NotificationTarget.TEAM,
-        NotificationType.BASIC,
-        {
-          content: `Team name has been updated to ${newName} (was ${team.name})`,
-        },
-      );
+      this.eventEmitter.emit("team.renamed", { teamId, newName, oldName: team.name });
     }
 
-    this.notificationService.sendEvent(teamId, NotificationTarget.TEAM, Event.TEAM_UPDATED);
+    this.eventEmitter.emit("team.updated", { teamId });
   }
 }

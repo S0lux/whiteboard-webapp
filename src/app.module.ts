@@ -11,7 +11,8 @@ import { UploaderModule } from "./uploader/uploader.module";
 import { TeamsModule } from "./teams/teams.module";
 import { InvitesModule } from "./invites/invites.module";
 import { GatewayModule } from "./gateway/gateway.module";
-import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationsModule } from "./notifications/notifications.module";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     GatewayModule,
     GatewayModule,
     NotificationsModule,
+    EventEmitterModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],
