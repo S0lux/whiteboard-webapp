@@ -11,6 +11,7 @@ import {
 import { UserTeam } from "./user-team-relation.entity";
 import { Invite } from "../../invites/entities/invite.entity";
 import { Exclude, Transform } from "class-transformer";
+import { Board } from "src/boards/entities/board.entity";
 
 @Entity({ name: "teams" })
 export class Team {
@@ -37,6 +38,9 @@ export class Team {
 
   @OneToMany(() => Invite, (invite) => invite.team)
   invites: Invite[];
+
+  @OneToMany(()=> Board,(board)=>board.team)
+  boards: Board[]
 
   constructor(partial: Partial<Team>) {
     Object.assign(this, partial);

@@ -12,6 +12,9 @@ import { TeamsModule } from "./teams/teams.module";
 import { InvitesModule } from "./invites/invites.module";
 import { GatewayModule } from "./gateway/gateway.module";
 import { NotificationsModule } from './notifications/notifications.module';
+import { BoardsModule } from "./boards/boards.module";
+import { ShapesModule } from "./shapes/shapes.module";
+import { PathsModule } from "./paths/paths.module";
 
 @Module({
   imports: [
@@ -26,8 +29,11 @@ import { NotificationsModule } from './notifications/notifications.module';
     GatewayModule,
     GatewayModule,
     NotificationsModule,
+    BoardsModule,
+    ShapesModule,
+    PathsModule
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
