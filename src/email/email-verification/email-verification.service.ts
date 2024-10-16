@@ -22,7 +22,7 @@ export class EmailVerificationService {
     return await this.emailTokenRepository.save(emailToken);
   }
 
-  async verifyEmailToken(token: string): Promise<any> {
+  async verifyEmailToken(token: string): Promise<EmailToken> {
     const emailToken = await this.emailTokenRepository.findOne({
       where: { token },
     });

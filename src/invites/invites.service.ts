@@ -1,22 +1,18 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Invite } from "src/invites/entities/invite.entity";
-import { NotificationsService } from "src/notifications/notifications.service";
 import { InviteStatus } from "src/shared/enums/invite-status.enum";
-import { Team } from "src/teams/entities/team.entity";
-import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Repository } from "typeorm";
 import { InviteReplyStrategy } from "./invites-reply-strategy.interface";
 import { AcceptInviteStrategy, RejectInviteStrategy } from "./invites-reply.strategies";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class InvitesService {
   constructor(
     @InjectRepository(Invite)
     private readonly inviteRepository: Repository<Invite>,
-    @InjectRepository(UserTeam)
-    private readonly userTeamRepository: Repository<UserTeam>,
-    private readonly notificationService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly acceptInviteStrategy: AcceptInviteStrategy,
     private readonly rejectInviteStrategy: RejectInviteStrategy,
   ) {}
@@ -55,6 +51,22 @@ export class InvitesService {
     await replyStrategy.execute(invite);
 
     await this.inviteRepository.save(invite);
+
+    if (status === InviteStatus.ACCEPTED) {
+      this.eventEmitter.emit("invite.accepted", {
+        recipientId: invite.recipient.id,
+        receipientName: invite.recipient.username,
+        senderId: invite.sender.id,
+        teamId: invite.team.id,
+      });
+    } else {
+      this.eventEmitter.emit("invite.rejected", {
+        recipientId: invite.recipient.id,
+        receipientName: invite.recipient.username,
+        senderId: invite.sender.id,
+        teamId: invite.team.id,
+      });
+    }
 
     return { message: "Invite replied to successfully" };
   }

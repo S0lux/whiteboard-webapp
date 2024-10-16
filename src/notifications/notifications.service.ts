@@ -8,6 +8,7 @@ import { NotificationType } from "src/shared/enums/notification.enum";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Event } from "src/shared/enums/event.enum";
 import { NotificationTarget } from "src/shared/enums/notification-target.enum";
+import { OnEvent } from "@nestjs/event-emitter";
 
 @Injectable()
 export class NotificationsService {
@@ -65,7 +66,7 @@ export class NotificationsService {
     return notification;
   }
 
-  async sendNotification(
+  private async sendNotification(
     targetId: number,
     targetType: NotificationTarget,
     type: NotificationType,
@@ -97,7 +98,12 @@ export class NotificationsService {
     }
   }
 
-  async sendEvent(targetId: number, targetType: NotificationTarget, eventType: Event, data?: any) {
+  private async sendEvent(
+    targetId: number,
+    targetType: NotificationTarget,
+    eventType: Event,
+    data?: any,
+  ) {
     if (targetType === NotificationTarget.USER) {
       if (data) this.notificationGateway.server.to(`user:${targetId}`).emit(eventType, data);
       else this.notificationGateway.server.to(`user:${targetId}`).emit(eventType);
@@ -117,6 +123,119 @@ export class NotificationsService {
 
     return this.notificationRepository.findOne({
       where: { id: notificationId, user: { id: userId } },
+    });
+  }
+
+  @OnEvent("team.created")
+  async handleTeamCreatedEvent(payload: { teamId: number; userId: number }) {
+    this.joinUserToRoom(payload.userId, payload.teamId);
+  }
+
+  @OnEvent("team.updated")
+  async handleTeamUpdatedEvent(payload: { teamId: number }) {
+    this.sendEvent(payload.teamId, NotificationTarget.TEAM, Event.TEAM_UPDATED);
+  }
+
+  @OnEvent("team.removedMember")
+  async handleRemoveMemberEvent(payload: {
+    teamId: number;
+    userId: number;
+    teamName: string;
+    isSelf?: boolean;
+  }) {
+    // Remove user from team room and notify team members about the change
+    this.removeUserFromRoom(payload.userId, payload.teamId);
+    this.sendEvent(
+      payload.teamId,
+      NotificationTarget.TEAM,
+      Event.TEAM_MEMBER_UPDATED,
+      payload.teamId,
+    );
+
+    // Notify the removed user
+    this.sendEvent(payload.userId, NotificationTarget.USER, Event.REMOVED_FROM_TEAM, {
+      teamId: payload.teamId,
+    });
+    this.sendNotification(payload.userId, NotificationTarget.USER, NotificationType.BASIC, {
+      content: payload.isSelf
+        ? `You have left ${payload.teamName}`
+        : `You have been removed from ${payload.teamName}`,
+    });
+  }
+
+  @OnEvent("team.updated")
+  async handleTeamRenamedEvent(payload: { teamId: number; newName: string; oldName: string }) {
+    this.sendNotification(payload.teamId, NotificationTarget.TEAM, NotificationType.BASIC, {
+      content: `Team name has been updated to ${payload.newName} (was ${payload.oldName})`,
+    });
+  }
+
+  @OnEvent("team.disbanded")
+  async handleTeamDisbandedEvent(payload: { teamId: number; teamName: string }) {
+    this.sendEvent(payload.teamId, NotificationTarget.TEAM, Event.REMOVED_FROM_TEAM, {
+      teamId: payload.teamId,
+    });
+    this.sendNotification(payload.teamId, NotificationTarget.TEAM, NotificationType.BASIC, {
+      content: `${payload.teamName} has been disbanded`,
+    });
+    this.disbandRoom(payload.teamId.toString());
+  }
+
+  @OnEvent("invite.created")
+  async handleTeamInviteEvent(payload: { inviteId: number; userId: number; teamName: string }) {
+    await this.sendNotification(payload.userId, NotificationTarget.USER, NotificationType.INVITE, {
+      content: `You have been invited to join ${payload.teamName}`,
+      inviteId: payload.inviteId,
+    });
+  }
+
+  @OnEvent("invite.accepted")
+  async handleInviteAcceptedEvent(payload: {
+    recipientId: number;
+    receipientName: string;
+    senderId: number;
+    teamId: number;
+    teamName: string;
+  }) {
+    this.joinUserToRoom(payload.recipientId, payload.teamId);
+    this.sendNotification(payload.senderId, NotificationTarget.USER, NotificationType.BASIC, {
+      content: `${payload.receipientName} has accepted your invitation to join ${payload.teamName}`,
+    });
+    this.sendEvent(
+      payload.teamId,
+      NotificationTarget.TEAM,
+      Event.TEAM_MEMBER_UPDATED,
+      payload.teamId,
+    );
+  }
+
+  @OnEvent("invite.rejected")
+  async handleInviteRejectedEvent(payload: {
+    receipientName: string;
+    senderId: number;
+    teamId: number;
+    teamName: string;
+  }) {
+    this.sendNotification(payload.senderId, NotificationTarget.USER, NotificationType.BASIC, {
+      content: `${payload.receipientName} has rejected your invitation to join ${payload.teamName}`,
+    });
+    this.sendEvent(
+      payload.teamId,
+      NotificationTarget.TEAM,
+      Event.TEAM_MEMBER_UPDATED,
+      payload.teamId,
+    );
+  }
+
+  @OnEvent("account.updated")
+  async handleAccountUpdatedEvent(payload: { userId: number }) {
+    this.sendEvent(payload.userId, NotificationTarget.USER, Event.ACCOUNT_UPDATED);
+  }
+
+  @OnEvent("account.verifiedEmail")
+  async handleEmailVerifiedEvent(payload: { userId: number }) {
+    this.sendNotification(payload.userId, NotificationTarget.USER, NotificationType.BASIC, {
+      content: "Your email is now verified.",
     });
   }
 }

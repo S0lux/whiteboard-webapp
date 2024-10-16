@@ -11,7 +11,8 @@ import { UploaderModule } from "./uploader/uploader.module";
 import { TeamsModule } from "./teams/teams.module";
 import { InvitesModule } from "./invites/invites.module";
 import { GatewayModule } from "./gateway/gateway.module";
-import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationsModule } from "./notifications/notifications.module";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 import { BoardsModule } from "./boards/boards.module";
 import { ShapesModule } from "./shapes/shapes.module";
 import { PathsModule } from "./paths/paths.module";
@@ -32,6 +33,7 @@ import { PathsModule } from "./paths/paths.module";
     BoardsModule,
     ShapesModule,
     PathsModule
+    EventEmitterModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],
