@@ -11,9 +11,6 @@ export class Shape {
     })
     data = {};
 
-    @Column()
-    blocking: boolean = false;
-
     @ManyToOne(() => Board, (board) => board.shapes)
     board: Board
 }

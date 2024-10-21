@@ -36,7 +36,7 @@ export class TeamsService {
     @Inject(UploaderService)
     private readonly uploaderService: UploaderService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
     const user = await this.userRepository.findOne({ where: { id: creator.id } });

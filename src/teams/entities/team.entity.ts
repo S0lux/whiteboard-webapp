@@ -39,8 +39,8 @@ export class Team {
   @OneToMany(() => Invite, (invite) => invite.team)
   invites: Invite[];
 
-  @OneToMany(()=> Board,(board)=>board.team)
-  boards: Board[]
+  @OneToMany(() => Board, (board) => board.team)
+  boards: Board[];
 
   constructor(partial: Partial<Team>) {
     Object.assign(this, partial);

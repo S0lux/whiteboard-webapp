@@ -32,7 +32,7 @@ import { PathsModule } from "./paths/paths.module";
     NotificationsModule,
     BoardsModule,
     ShapesModule,
-    PathsModule
+    PathsModule,
     EventEmitterModule.forRoot(),
   ],
   controllers: [AppController],

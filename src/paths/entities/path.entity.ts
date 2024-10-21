@@ -11,9 +11,6 @@ export class Path {
     })
     data = {}
 
-    @Column()
-    blocking: boolean = false;
-
     @ManyToOne(() => Board, (board) => board.paths)
     board: Board
 }

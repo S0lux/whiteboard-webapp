@@ -22,4 +22,4 @@ import { join } from "path";
     }),
   ],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }
