@@ -41,6 +41,7 @@ export class BoardGateWay implements OnModuleInit {
                         return;
                     }
                     socket.join(`board:${boardId}`);
+                    // socket.to(`board:${boardId}`).emit("user-joined", { boardId, userId: user.id });
                     console.log(`User ${user.id} joined board ${boardId}`);
                 });
 
@@ -57,10 +58,10 @@ export class BoardGateWay implements OnModuleInit {
                         shape.board = board;
                         await this.shapeRepository.save(shape);
                         console.log("Shape saved");
+                        socket.to(`board:${payload.boardId}`).emit("add-node", { boardId: payload.boardId, data: payload.data });
                     } catch (err) {
                         console.error(err);
                     }
-                    socket.to(`board:${payload.boardId}`).emit("add-node", payload);
                 })
 
                 socket.on("add-path", async (payload: { boardId: number, data: any }) => {
@@ -76,11 +77,56 @@ export class BoardGateWay implements OnModuleInit {
                         path.board = board;
                         await this.pathRepository.save(path);
                         console.log("Path saved");
+                        socket.to(`board:${payload.boardId}`).emit("add-path", { boardId: payload.boardId, data: payload.data });
                     } catch (err) {
                         console.error(err);
                     }
-                    socket.to(`board:${payload.boardId}`).emit("add-path", payload);
                 })
+
+                socket.on("update-node", async (payload: { boardId: number, nodeId: string, data: any }) => {
+                    try {
+                        const board = await this.boardRepository.findOne({ where: { id: payload.boardId } });
+                        if (!board) {
+                            console.log("Board not found");
+                            return;
+                        }
+                        const shape = await this.shapeRepository.findOne({ where: { id: payload.nodeId } });
+                        if (!shape) {
+                            console.log("Shape not found");
+                            return;
+                        }
+                        shape.data = payload.data;
+                        await this.shapeRepository.save(shape);
+                        console.log("Shape updated");
+                        socket.to(`board:${payload.boardId}`).emit("update-node", { boardId: payload.boardId, nodeId: payload.nodeId, data: payload.data });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                })
+
+                socket.on("update-path", async (payload: { boardId: number, pathId: string, data: any }) => {
+                    try {
+                        const board = await this.boardRepository.findOne({ where: { id: payload.boardId } });
+                        if (!board) {
+                            console.log("Board not found");
+                            return;
+                        }
+                        const path = await this.pathRepository.findOne({ where: { id: payload.pathId } });
+                        if (!path) {
+                            console.log("Path not found");
+                            return;
+                        }
+                        path.data = payload.data;
+                        await this.pathRepository.save(path);
+                        console.log("Path updated");
+                        socket.to(`board:${payload.boardId}`).emit("update-path", { boardId: payload.boardId, pathId: payload.pathId, data: payload.data });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                })
+
+
+
             }
             else {
                 console.log("User not found");
