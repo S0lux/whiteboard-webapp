@@ -5,22 +5,18 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Team } from "./entities/team.entity";
-import { In, Repository } from "typeorm";
-import { CreateTeamDto } from "./dtos/CreateTeamDto";
-import { User } from "src/users/entities/user.entity";
-import { UserTeam } from "./entities/user-team-relation.entity";
-import { Role } from "../shared/enums/role.enum";
-import { UploaderService } from "src/uploader/uploader.interface";
-import { Invite } from "../invites/entities/invite.entity";
 import { InviteStatus } from "src/shared/enums/invite-status.enum";
 import { getPlanDetails } from "src/shared/plan_details.helper";
-import { NotificationsService } from "src/notifications/notifications.service";
-import { NotificationType } from "src/shared/enums/notification.enum";
-import { Event } from "src/shared/enums/event.enum";
-import { NotificationTarget } from "src/shared/enums/notification-target.enum";
-import { EventEmitter2 } from "@nestjs/event-emitter";
+import { UploaderService } from "src/uploader/uploader.interface";
+import { User } from "src/users/entities/user.entity";
+import { In, Repository } from "typeorm";
+import { Invite } from "../invites/entities/invite.entity";
+import { Role } from "../shared/enums/role.enum";
+import { CreateTeamDto } from "./dtos/CreateTeamDto";
+import { Team } from "./entities/team.entity";
+import { UserTeam } from "./entities/user-team-relation.entity";
 
 @Injectable()
 export class TeamsService {
