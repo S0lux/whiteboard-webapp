@@ -1,3 +1,4 @@
+import { Permission } from "../enums/permission.enum";
 import { Plan } from "../enums/plan.enum";
 
 export type LoggedInUser = {
@@ -8,6 +9,7 @@ export type LoggedInUser = {
     avatar: string;
     createdAt: string;
     accountPlan: Plan;
+    permission?: Permission;
 };
 
 export type UserJoinedPayload = {

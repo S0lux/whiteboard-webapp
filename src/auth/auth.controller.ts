@@ -32,7 +32,7 @@ export class AuthController {
     private readonly emailVerificationService: EmailVerificationService,
     private readonly emailPasswordResetService: EmailPasswordResetService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   @UseGuards(LocalAuthGuard)
   @Post("login")

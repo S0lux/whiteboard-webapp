@@ -31,7 +31,6 @@ export class BoardGateWay implements OnModuleInit {
         this.server.on("connection", async (socket: Socket) => {
             const user = (socket.request as any).user;
             if (user) {
-                // console.log(user)
                 socket.on("joinBoard", async (boardId: number) => {
                     await this.handleJoinBoard(socket, user, boardId);
                 });
@@ -81,6 +80,23 @@ export class BoardGateWay implements OnModuleInit {
             socket.leave(`board:${this.currentBoardId}`);
         }
 
+        const userTeam = await this.userTeamRepository.findOne({
+            where: {
+                user: { id: user.id },
+                team: { id: board.team.id }
+            },
+        });
+
+        if (!userTeam) {
+            console.log(`User ${user.id} is not authorized to access board ${boardId}`);
+            return;
+        }
+
+        const enhancedUser: LoggedInUser = {
+            ...user,
+            permission: userTeam.permission
+        };
+
         this.currentBoardId = boardId;
 
         socket.join(`board:${boardId}`);
@@ -88,15 +104,15 @@ export class BoardGateWay implements OnModuleInit {
         if (!this.boardUsers.has(boardId)) {
             this.boardUsers.set(boardId, new Map<string, LoggedInUser>());
         }
-        this.boardUsers.get(boardId)?.set(socket.id, user as LoggedInUser);
+        this.boardUsers.get(boardId)?.set(socket.id, enhancedUser as LoggedInUser);
 
-        const boardUsersArray = Array.from(this.boardUsers.get(boardId)?.entries() ?? []).map(([socketId, user]) => ({
+        const boardUsersArray = Array.from(this.boardUsers.get(boardId)?.entries() ?? []).map(([socketId, enhancedUser]) => ({
             socketId,
-            user,
+            enhancedUser,
         }));
 
         socket.to(`board:${boardId}`).emit("board-users", boardUsersArray);
-        socket.emit("board-users", boardUsersArray);
+        socket.emit("user-joined", { socketId: socket.id, user: enhancedUser } as UserJoinedPayload);
 
         console.log(`User ${user.id} joined board ${boardId}`);
     }

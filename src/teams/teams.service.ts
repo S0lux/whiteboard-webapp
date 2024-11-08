@@ -19,6 +19,8 @@ import { Team } from "./entities/team.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
 import { Permission } from "src/shared/enums/permission.enum";
 import { Board } from "src/boards/entities/board.entity";
+import { UpdatePermissionDto } from "./dtos/UpdatePermissionDto";
+import { permission } from "process";
 
 @Injectable()
 export class TeamsService {
@@ -224,6 +226,7 @@ export class TeamsService {
         email: relation.user.email,
         avatar: relation.user.avatar,
         role: relation.role,
+        permission: relation.permission
       };
 
       return member;
@@ -328,5 +331,19 @@ export class TeamsService {
     });
 
     return teamBoards;
+  }
+
+  async updatePermission(updatePermissionDto: UpdatePermissionDto) {
+    const userTeam = await this.userTeamRepository.findOne({
+      where: { team: { id: updatePermissionDto.teamId }, user: { id: updatePermissionDto.userId } },
+      relations: ["user"],
+    })
+    if (!userTeam) {
+      throw new BadRequestException("User not found in team")
+    }
+
+    userTeam.permission = updatePermissionDto.permission
+    await this.userTeamRepository.save(userTeam)
+    return { message: "Permission updated" }
   }
 }
