@@ -5,13 +5,15 @@ import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Repository } from "typeorm";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Role } from "src/shared/enums/role.enum";
+import { Permission } from "src/shared/enums/permission.enum";
 
 @Injectable()
 export class AcceptInviteStrategy implements InviteReplyStrategy {
   constructor(
     @InjectRepository(UserTeam)
     private userTeamRepository: Repository<UserTeam>,
-  ) {}
+  ) { }
 
   async execute(invite: Invite): Promise<void> {
     await this.addToTeam(invite);
@@ -22,7 +24,8 @@ export class AcceptInviteStrategy implements InviteReplyStrategy {
     const userTeam = new UserTeam();
     userTeam.user = invite.recipient;
     userTeam.team = invite.team;
-    userTeam.role = "MEMBER";
+    userTeam.role = Role.MEMBER;
+    userTeam.permission = Permission.VIEW;
 
     await this.userTeamRepository.save(userTeam);
   }

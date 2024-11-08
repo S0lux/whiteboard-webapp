@@ -17,6 +17,8 @@ import { Role } from "../shared/enums/role.enum";
 import { CreateTeamDto } from "./dtos/CreateTeamDto";
 import { Team } from "./entities/team.entity";
 import { UserTeam } from "./entities/user-team-relation.entity";
+import { Permission } from "src/shared/enums/permission.enum";
+import { Board } from "src/boards/entities/board.entity";
 
 @Injectable()
 export class TeamsService {
@@ -32,6 +34,8 @@ export class TeamsService {
     @Inject(UploaderService)
     private readonly uploaderService: UploaderService,
     private readonly eventEmitter: EventEmitter2,
+    @InjectRepository(Board)
+    private readonly boardRepository: Repository<Board>,
   ) { }
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
@@ -52,6 +56,7 @@ export class TeamsService {
     userTeams.user = user;
     userTeams.team = newTeam;
     userTeams.role = Role.OWNER;
+    userTeams.permission = Permission.EDIT;
 
     const result = await this.userTeamRepository.save(userTeams);
     this.eventEmitter.emit("team.created", { teamId: result.id, userId: user.id });
@@ -315,5 +320,13 @@ export class TeamsService {
     }
 
     this.eventEmitter.emit("team.updated", { teamId });
+  }
+
+  async getTeamBoards(teamId: number) {
+    const teamBoards = await this.boardRepository.find({
+      where: { team: { id: teamId } },
+    });
+
+    return teamBoards;
   }
 }

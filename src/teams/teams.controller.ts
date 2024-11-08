@@ -33,7 +33,7 @@ export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
     private readonly emailInvitationService: EmailInvitationService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthenticatedGuard)
   @Post()
@@ -42,6 +42,12 @@ export class TeamsController {
     @AuthUser() user,
   ) {
     return await this.teamsService.createTeam(createTeamDto, user);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Get(":teamId/boards")
+  async getBoards(@Param("teamId", ParseIntPipe) teamId: number) {
+    return await this.teamsService.getTeamBoards(teamId);
   }
 
   @UseGuards(AuthenticatedGuard)

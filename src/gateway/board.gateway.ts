@@ -31,6 +31,7 @@ export class BoardGateWay implements OnModuleInit {
         this.server.on("connection", async (socket: Socket) => {
             const user = (socket.request as any).user;
             if (user) {
+                // console.log(user)
                 socket.on("joinBoard", async (boardId: number) => {
                     await this.handleJoinBoard(socket, user, boardId);
                 });

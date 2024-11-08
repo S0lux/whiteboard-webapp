@@ -24,6 +24,8 @@ export class BoardsController {
     @Body(new ZodValidationPipe(CreateBoardSchema)) craeteBoardDto: CreateBoardDto,
     @AuthUser() user,
   ) {
+    console.log(craeteBoardDto)
+
     return await this.boardsService.createBoard(craeteBoardDto, user)
   }
 

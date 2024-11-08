@@ -1,6 +1,8 @@
 import { User } from "src/users/entities/user.entity";
 import { Entity, Column, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Team } from "./team.entity";
+import { Role } from "src/shared/enums/role.enum";
+import { Permission } from "src/shared/enums/permission.enum";
 
 @Entity("user_teams")
 export class UserTeam {
@@ -14,5 +16,8 @@ export class UserTeam {
   team: Team;
 
   @Column()
-  role: string;
+  role: Role;
+
+  @Column()
+  permission: Permission = Permission.VIEW;
 }
