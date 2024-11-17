@@ -17,7 +17,7 @@ export class NotificationsService {
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(UserTeam) private userTeamRepository: Repository<UserTeam>,
     private readonly notificationGateway: NotificationGateway,
-  ) {}
+  ) { }
 
   joinUserToRoom(userId: number, teamId: number) {
     this.notificationGateway.server.in(`user:${userId}`).socketsJoin(`team:${teamId}`);

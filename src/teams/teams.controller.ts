@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -27,13 +28,14 @@ import { InviteMemberDto, InviteMemberSchema } from "./dtos/InviteMemberDto";
 import { User } from "src/users/entities/user.entity";
 import { EmailInvitationService } from "src/email/email-invitation/email-invitation.service";
 import { UpdateTeamDto, UpdateTeamSchema } from "./dtos/UpdateTeamDto";
+import { UpdatePermissionDto } from "./dtos/UpdatePermissionDto";
 
 @Controller("teams")
 export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
     private readonly emailInvitationService: EmailInvitationService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthenticatedGuard)
   @Post()
@@ -45,9 +47,25 @@ export class TeamsController {
   }
 
   @UseGuards(AuthenticatedGuard)
+  @Get(":teamId/boards")
+  async getBoards(@Param("teamId", ParseIntPipe) teamId: number) {
+    return await this.teamsService.getTeamBoards(teamId);
+  }
+
+  @UseGuards(AuthenticatedGuard)
   @Get()
   async findAll(@AuthUser() user) {
     return await this.teamsService.findAll(user);
+  }
+
+  @TeamRoles(Role.OWNER)
+  @UseGuards(TeamRoleGuard)
+  @Put(":teamId/members")
+  async updatePermission(
+    @Param("teamId", ParseIntPipe) teamId: number,
+    @Body() updatePermissionDto: UpdatePermissionDto,
+  ) {
+    return await this.teamsService.updatePermission(updatePermissionDto);
   }
 
   @TeamRoles(Role.OWNER)
@@ -105,6 +123,7 @@ export class TeamsController {
   @UseGuards(TeamRoleGuard)
   @Get(":teamId/members")
   async getMembers(@Param("teamId", ParseIntPipe) teamId: number) {
+    console.log(teamId)
     return await this.teamsService.getMembers(teamId);
   }
 

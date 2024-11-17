@@ -10,10 +10,11 @@ import { UsersModule } from "src/users/users.module";
 import { Invite } from "../invites/entities/invite.entity";
 import { EmailModule } from "src/email/email.module";
 import { NotificationsModule } from "src/notifications/notifications.module";
+import { Board } from "src/boards/entities/board.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Team, UserTeam, Invite]),
+    TypeOrmModule.forFeature([User, Team, UserTeam, Invite, Board]),
     UploaderModule,
     UsersModule,
     EmailModule,
@@ -22,4 +23,4 @@ import { NotificationsModule } from "src/notifications/notifications.module";
   providers: [TeamsService],
   controllers: [TeamsController],
 })
-export class TeamsModule {}
+export class TeamsModule { }

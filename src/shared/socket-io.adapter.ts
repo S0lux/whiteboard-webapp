@@ -34,7 +34,6 @@ export class SocketIOAdapter extends IoAdapter {
         next(new Error("unauthorized"));
       }
     });
-
     return server;
   }
 }

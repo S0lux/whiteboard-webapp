@@ -16,10 +16,10 @@ import { join } from "path";
         username: configService.getOrThrow<string>("POSTGRES_USER"),
         password: configService.getOrThrow<string>("POSTGRES_PASSWORD"),
         database: configService.getOrThrow<string>("POSTGRES_DB"),
-        synchronize: configService.getOrThrow<boolean>("TYPEORM_SYNCHRONIZE", false),
+        synchronize: configService.getOrThrow<boolean>("TYPEORM_SYNCHRONIZE", true),
         entities: [join(__dirname, "..", "**", "*.entity.{ts,js}")],
       }),
     }),
   ],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }

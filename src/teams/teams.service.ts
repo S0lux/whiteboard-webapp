@@ -5,22 +5,22 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Team } from "./entities/team.entity";
-import { In, Repository } from "typeorm";
-import { CreateTeamDto } from "./dtos/CreateTeamDto";
-import { User } from "src/users/entities/user.entity";
-import { UserTeam } from "./entities/user-team-relation.entity";
-import { Role } from "../shared/enums/role.enum";
-import { UploaderService } from "src/uploader/uploader.interface";
-import { Invite } from "../invites/entities/invite.entity";
 import { InviteStatus } from "src/shared/enums/invite-status.enum";
 import { getPlanDetails } from "src/shared/plan_details.helper";
-import { NotificationsService } from "src/notifications/notifications.service";
-import { NotificationType } from "src/shared/enums/notification.enum";
-import { Event } from "src/shared/enums/event.enum";
-import { NotificationTarget } from "src/shared/enums/notification-target.enum";
-import { EventEmitter2 } from "@nestjs/event-emitter";
+import { UploaderService } from "src/uploader/uploader.interface";
+import { User } from "src/users/entities/user.entity";
+import { In, Repository } from "typeorm";
+import { Invite } from "../invites/entities/invite.entity";
+import { Role } from "../shared/enums/role.enum";
+import { CreateTeamDto } from "./dtos/CreateTeamDto";
+import { Team } from "./entities/team.entity";
+import { UserTeam } from "./entities/user-team-relation.entity";
+import { Permission } from "src/shared/enums/permission.enum";
+import { Board } from "src/boards/entities/board.entity";
+import { UpdatePermissionDto } from "./dtos/UpdatePermissionDto";
+import { permission } from "process";
 
 @Injectable()
 export class TeamsService {
@@ -36,7 +36,9 @@ export class TeamsService {
     @Inject(UploaderService)
     private readonly uploaderService: UploaderService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    @InjectRepository(Board)
+    private readonly boardRepository: Repository<Board>,
+  ) { }
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
     const user = await this.userRepository.findOne({ where: { id: creator.id } });
@@ -56,6 +58,7 @@ export class TeamsService {
     userTeams.user = user;
     userTeams.team = newTeam;
     userTeams.role = Role.OWNER;
+    userTeams.permission = Permission.EDIT;
 
     const result = await this.userTeamRepository.save(userTeams);
     this.eventEmitter.emit("team.created", { teamId: result.id, userId: user.id });
@@ -223,6 +226,7 @@ export class TeamsService {
         email: relation.user.email,
         avatar: relation.user.avatar,
         role: relation.role,
+        permission: relation.permission
       };
 
       return member;
@@ -319,5 +323,27 @@ export class TeamsService {
     }
 
     this.eventEmitter.emit("team.updated", { teamId });
+  }
+
+  async getTeamBoards(teamId: number) {
+    const teamBoards = await this.boardRepository.find({
+      where: { team: { id: teamId } },
+    });
+
+    return teamBoards;
+  }
+
+  async updatePermission(updatePermissionDto: UpdatePermissionDto) {
+    const userTeam = await this.userTeamRepository.findOne({
+      where: { team: { id: updatePermissionDto.teamId }, user: { id: updatePermissionDto.userId } },
+      relations: ["user"],
+    })
+    if (!userTeam) {
+      throw new BadRequestException("User not found in team")
+    }
+
+    userTeam.permission = updatePermissionDto.permission
+    await this.userTeamRepository.save(userTeam)
+    return { message: "Permission updated" }
   }
 }

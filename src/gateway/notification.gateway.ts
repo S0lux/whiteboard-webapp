@@ -10,7 +10,7 @@ import { Repository } from "typeorm";
 export class NotificationGateway implements OnModuleInit {
   constructor(
     @InjectRepository(UserTeam) private readonly userTeamRepository: Repository<UserTeam>,
-  ) {}
+  ) { }
 
   @WebSocketServer()
   server: Server;

@@ -13,6 +13,9 @@ import { InvitesModule } from "./invites/invites.module";
 import { GatewayModule } from "./gateway/gateway.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { EventEmitterModule } from "@nestjs/event-emitter";
+import { BoardsModule } from "./boards/boards.module";
+import { ShapesModule } from "./shapes/shapes.module";
+import { PathsModule } from "./paths/paths.module";
 
 @Module({
   imports: [
@@ -27,9 +30,12 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
     GatewayModule,
     GatewayModule,
     NotificationsModule,
+    BoardsModule,
+    ShapesModule,
+    PathsModule,
     EventEmitterModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
