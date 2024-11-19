@@ -17,3 +17,16 @@ export type UserJoinedPayload = {
     user: LoggedInUser;
 }
 
+
+export type Presentation = {
+    user: LoggedInUser;
+    stage: StageConfig
+}
+
+type StageConfig = {
+    stageScale: number,
+    stageX: number,
+    stageY: number,
+}
+
+

@@ -14,6 +14,7 @@ import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Invite } from "src/invites/entities/invite.entity";
 import { Notification } from "src/notifications/entities/notification.entity";
 import { Plan } from "src/shared/enums/plan.enum";
+import { UserBoard } from "src/boards/entities/user_board.entity";
 
 @Entity({ name: "users" })
 export class User {
@@ -46,6 +47,9 @@ export class User {
 
   @OneToMany(() => UserTeam, (userTeam) => userTeam.user)
   userTeams: UserTeam[];
+
+  @OneToMany(() => UserBoard, (userBoard) => userBoard.user)
+  userBoards: UserBoard[];
 
   @OneToMany(() => Invite, (invite) => invite.sender)
   sentInvites: Invite[];

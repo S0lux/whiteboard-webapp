@@ -36,4 +36,9 @@ export class BoardsController {
     return await this.boardsService.getBoardById(id)
   }
 
+  @UseGuards(AuthenticatedGuard)
+  @Get(':id/userBoard')
+  async getUserBoard(@Param('id') id: string, @AuthUser() user) {
+    return await this.boardsService.getUserBoard(Number(id), user.id as number)
+  }
 }

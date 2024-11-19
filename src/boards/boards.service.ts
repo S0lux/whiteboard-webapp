@@ -9,6 +9,7 @@ import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Board } from "./entities/board.entity";
 import { Team } from "src/teams/entities/team.entity";
+import { UserBoard } from "./entities/user_board.entity";
 
 @Injectable()
 export class BoardsService {
@@ -16,7 +17,8 @@ export class BoardsService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(UserTeam) private readonly userTeamRepository: Repository<UserTeam>,
     @InjectRepository(Board) private readonly boardRepository: Repository<Board>,
-    @InjectRepository(Team) private readonly teamRepository: Repository<Team>
+    @InjectRepository(Team) private readonly teamRepository: Repository<Team>,
+    @InjectRepository(UserBoard) private readonly userBoardRepository: Repository<UserBoard>,
   ) { }
 
   async createBoard(data: CreateBoardDto, creator: { id: number }) {
@@ -48,6 +50,16 @@ export class BoardsService {
 
   async getBoardById(id: string) {
     return await this.boardRepository.findOne({ where: { id: Number(id) }, relations: ["paths", "shapes"] });
+  }
+
+  async getUserBoard(boardId: number, userId: number) {
+    let userBoard = await this.userBoardRepository.findOne({
+      where: { board: { id: boardId }, user: { id: userId } }
+    });
+    if (!userBoard) {
+      userBoard = new UserBoard({})
+    }
+    return userBoard;
   }
 
 }

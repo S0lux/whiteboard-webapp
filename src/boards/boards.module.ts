@@ -6,10 +6,11 @@ import { BoardsService } from "./boards.service";
 import { User } from "src/users/entities/user.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Team } from "src/teams/entities/team.entity";
+import { UserBoard } from "./entities/user_board.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Board, User, UserTeam, Team]),
+    TypeOrmModule.forFeature([Board, User, UserTeam, Team, UserBoard]),
   ],
   providers: [BoardsService],
   controllers: [BoardsController],
