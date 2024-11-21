@@ -32,7 +32,6 @@ export class BoardsController {
   @UseGuards(AuthenticatedGuard)
   @Get(':id')
   async getBoardById(@Param('id') id: string) {
-    console.log(id)
     return await this.boardsService.getBoardById(id)
   }
 

@@ -23,7 +23,7 @@ export type Presentation = {
     stage: StageConfig
 }
 
-type StageConfig = {
+export type StageConfig = {
     stageScale: number,
     stageX: number,
     stageY: number,

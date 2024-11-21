@@ -6,10 +6,16 @@ import { Board } from "src/boards/entities/board.entity";
 import { UserBoard } from "src/boards/entities/user_board.entity";
 import { Path } from "src/paths/entities/path.entity";
 import { Shape } from "src/shapes/entities/shape.entity";
-import { LoggedInUser, Presentation, UserJoinedPayload } from "src/shared/types/board-socket.type";
+import { LoggedInUser, Presentation, StageConfig, UserJoinedPayload } from "src/shared/types/board-socket.type";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Repository } from "typeorm";
+
+export interface PresentationState {
+    presenter: LoggedInUser | null;
+    presentation: StageConfig | null;
+    participants: Map<string, LoggedInUser>;
+}
 
 @WebSocketGateway()
 export class BoardGateWay implements OnModuleInit {
@@ -26,7 +32,7 @@ export class BoardGateWay implements OnModuleInit {
     server: Server;
 
     boardUsers = new Map<number, Map<string, LoggedInUser>>();
-    presentationUsers = new Map<number, Map<string, LoggedInUser>>();
+    presentationStates = new Map<number, PresentationState>();
 
     currentBoardId: number | null = null;
 
@@ -54,33 +60,34 @@ export class BoardGateWay implements OnModuleInit {
                     await this.handleUpdatePath(socket, payload);
                 });
 
-
-                socket.on("start-presentation", async (payload: { boardId: number, data: Presentation }) => {
+                socket.on("start-presentation", async (payload: { boardId: number, data: StageConfig }) => {
                     await this.handleStartPresentation(socket, payload.boardId, user, payload.data);
                 });
 
                 socket.on("join-presentation", async (boardId: number) => {
                     await this.handleJoinPresentation(socket, user, boardId);
-                })
-
-                socket.on("drag-while-presenting", async (payload: { boardId: number, data: Presentation }) => {
-                    await this.handleDragWhilePresentation(socket, payload.boardId, payload.data);
-                })
+                });
 
                 socket.on("leave-presentation", async (boardId: number) => {
-                    await this.handleLeavePresentation(socket, boardId);
-                })
+                    await this.handleLeavePresentation(socket, boardId, user);
+                });
 
-                socket.on("end-presentation", async () => {
-                    await this.handleEndPresentation(socket);
-                })
+                socket.on("end-presentation", async (boardId: number) => {
+                    await this.handleEndPresentation(socket, boardId);
+                });
+
+                socket.on("drag-while-presenting", async (payload: { boardId: number, data: StageConfig }) => {
+                    await this.handleDragWhilePresentation(socket, payload.boardId, payload.data);
+                });
 
                 socket.on("disconnect", async () => {
                     await this.handleDisconnect(socket);
                 });
             }
             else {
+                socket.disconnect()
                 console.log("User not found");
+                return;
             }
         });
     }
@@ -108,136 +115,6 @@ export class BoardGateWay implements OnModuleInit {
             userBoard.data = payload.data;
             await this.userBoardRepository.save(userBoard);
         }
-    }
-
-    private async handleJoinPresentation(socket: Socket, user: LoggedInUser, boardId: number) {
-        const board = await this.boardRepository.findOne({
-            where: { id: boardId },
-            relations: ["team"],
-        });
-        if (!board) {
-            console.log(`Board ${boardId} not found`);
-            return;
-        }
-
-        const isAuthorized = await this.isUserInTeam(user.id, board.team.id);
-        if (!isAuthorized) {
-            console.log(`User ${user.id} is not authorized to access board ${boardId}`);
-            return;
-        }
-
-        if (this.currentBoardId !== null) {
-            socket.leave(`board:${this.currentBoardId}`);
-            socket.leave(`board-presentation:${this.currentBoardId}`)
-        }
-
-        const userTeam = await this.userTeamRepository.findOne({
-            where: {
-                user: { id: user.id },
-                team: { id: board.team.id }
-            },
-        });
-
-        if (!userTeam) {
-            console.log(`User ${user.id} is not authorized to access board ${boardId}`);
-            return;
-        }
-
-        const enhancedUser: LoggedInUser = {
-            ...user,
-            permission: userTeam.permission
-        };
-
-        this.currentBoardId = boardId;
-
-        socket.join(`board-presentation:${boardId}`);
-        if (!this.presentationUsers.has(boardId)) {
-            this.presentationUsers.set(boardId, new Map<string, LoggedInUser>());
-        }
-        this.presentationUsers.get(boardId)?.set(socket.id, enhancedUser as LoggedInUser);
-
-        const presentationUsersArray = Array.from(this.presentationUsers.get(boardId)?.entries() ?? []).map(([socketId, enhancedUser]) => ({
-            socketId,
-            enhancedUser,
-        }));
-
-        socket.to(`board-presentation:${boardId}`).emit("presentation-users", presentationUsersArray);
-        socket.emit("join-presentation", presentationUsersArray);
-        console.log(`User ${user.id} joined presentation on board ${boardId}`);
-
-    }
-
-    private async handleLeavePresentation(socket: Socket, boardId: number) {
-        if (this.currentBoardId === null) {
-            return;
-        }
-        const presentationUsers = this.presentationUsers.get(this.currentBoardId);
-        if (presentationUsers) {
-            presentationUsers.delete(socket.id);
-        }
-        socket.to(`board-presentation:${this.currentBoardId}`).emit("leave-presentation", socket.id);
-    }
-
-    private async handleStartPresentation(socket: Socket, boardId: number, user: LoggedInUser, data: Presentation) {
-        if (this.currentBoardId === null) {
-            return;
-        }
-        const board = await this.boardRepository.findOne({
-            where: { id: boardId },
-            relations: ["team"],
-        });
-        if (!board) {
-            console.log(`Board ${boardId} not found`);
-            return;
-        }
-
-        board.presentation = data;
-        await this.boardRepository.save(board);
-
-        socket.to(`board:${boardId}`).emit("start-presentation", data);
-        console.log(`User ${user.id} started presentation on board ${boardId}`);
-        this.handleJoinPresentation(socket, user, boardId);
-
-    }
-
-    private async handleEndPresentation(socket: Socket) {
-        if (this.currentBoardId === null) {
-            return;
-        }
-        const presentationUsers = this.boardUsers.get(this.currentBoardId);
-        if (presentationUsers) {
-            presentationUsers.delete(socket.id);
-        }
-
-        const board = await this.boardRepository.findOne({
-            where: { id: this.currentBoardId },
-            relations: ["team"],
-        });
-        if (!board) {
-            console.log(`Board ${this.currentBoardId} not found`);
-            return;
-        }
-
-        board.presentation = null;
-        await this.boardRepository.save(board);
-        socket.to(`board-presentation:${this.currentBoardId}`).emit("end-presentation", socket.id);
-        console.log(`User ${socket.id} ended presentation on board ${this.currentBoardId}`);
-    }
-
-    private async handleDragWhilePresentation(socket: Socket, boardId: number, data: Presentation) {
-        const board = await this.boardRepository.findOne({
-            where: { id: boardId },
-            relations: ["team"],
-        });
-        if (!board) {
-            console.log(`Board ${boardId} not found`);
-            return;
-        }
-
-        board.presentation = data;
-        await this.boardRepository.save(board);
-
-        socket.to(`board-presentation:${boardId}`).emit("drag-while-presentating", data);
     }
 
     private async handleJoinBoard(socket: Socket, user: LoggedInUser, boardId: number) {
@@ -381,27 +258,28 @@ export class BoardGateWay implements OnModuleInit {
         if (this.currentBoardId === null) {
             return;
         }
+        // Remove user from boardUsers map
         const boardUsers = this.boardUsers.get(this.currentBoardId);
+        const disconnectedUser = boardUsers?.get(socket.id);
         if (boardUsers) {
             boardUsers.delete(socket.id);
         }
+        const boardId = this.currentBoardId;
+        const presentationState = this.presentationStates.get(boardId);
+        if (presentationState) {
+            // Check if the user is the presenter
+            if (presentationState.presenter?.id === disconnectedUser?.id) {
+                console.log(`Presenter ${disconnectedUser?.id} disconnected from board ${boardId}`);
 
-        const board = await this.boardRepository.findOne({
-            where: { id: this.currentBoardId },
-            relations: ["team"],
-        });
-        if (!board) {
-            console.log(`Board ${this.currentBoardId} not found`);
-            return;
+                // await this.handleEndPresentation(socket, boardId);
+            } else {
+                // Remove participant from the presentation
+                presentationState.participants.delete(socket.id);
+
+                // Notify other participants about the user leaving
+                // await this.handleLeavePresentation(socket, boardId, disconnectedUser!);
+            }
         }
-        const presentation = board.presentation as Presentation;
-
-        if (presentation && presentation.user != undefined && presentation.user.id === (socket.request as any).user.id) {
-            this.handleEndPresentation(socket);
-
-        }
-        else
-            this.handleLeavePresentation(socket, this.currentBoardId);
 
         socket.to(`board:${this.currentBoardId}`).emit("user-left", socket.id);
     }
@@ -412,5 +290,193 @@ export class BoardGateWay implements OnModuleInit {
             where: { user: { id: userId }, team: { id: teamId } },
         });
         return !!userTeam;
+    }
+
+
+    //Presentation
+    private createPresentationState(): PresentationState {
+        return {
+            presenter: null,
+            presentation: null,
+            participants: new Map<string, LoggedInUser>()
+        };
+    }
+
+    private getPresentationState(boardId: number): PresentationState {
+        if (!this.presentationStates.has(boardId)) {
+            this.presentationStates.set(boardId, this.createPresentationState());
+        }
+        return this.presentationStates.get(boardId)!;
+    }
+
+    private async validateBoardAccess(boardId: number, userId: number): Promise<{ board: Board; userTeam: UserTeam } | null> {
+        const board = await this.boardRepository.findOne({
+            where: { id: boardId },
+            relations: ["team"],
+        });
+
+        if (!board) {
+            return null;
+        }
+
+        const userTeam = await this.userTeamRepository.findOne({
+            where: {
+                user: { id: userId },
+                team: { id: board.team.id }
+            },
+        });
+
+        if (!userTeam) {
+            return null;
+        }
+
+        return { board, userTeam };
+    }
+
+    private async handleStartPresentation(socket: Socket, boardId: number, user: LoggedInUser, data: StageConfig) {
+        const validation = await this.validateBoardAccess(boardId, user.id);
+        if (!validation) {
+            socket.emit("error", { message: "Unauthorized access or board not found" });
+            return;
+        }
+
+        const { board } = validation;
+        const presentationState = this.getPresentationState(boardId);
+
+        if (presentationState.presenter) {
+            socket.emit("error", { message: "Presentation already in progress" });
+            return;
+        }
+
+        presentationState.presenter = user;
+        presentationState.presentation = data;
+
+        // Save presentation state to database
+        board.setPresentationState(presentationState)
+        await this.boardRepository.save(board);
+
+        // Notify all users in the board
+        socket.to(`board:${boardId}`).emit("start-presentation", presentationState);
+
+        // Add presenter as first participant
+        // await this.handleJoinPresentation(socket, user, boardId);
+    }
+
+    private async handleJoinPresentation(socket: Socket, user: LoggedInUser, boardId: number) {
+        const validation = await this.validateBoardAccess(boardId, user.id);
+        if (!validation) {
+            socket.emit("error", { message: "Unauthorized access or board not found" });
+            return;
+        }
+
+        const { userTeam, board } = validation;
+        const presentationState = this.getPresentationState(boardId);
+
+        if (!presentationState.presentation) {
+            socket.emit("error", { message: "No active presentation" });
+            return;
+        }
+
+        const enhancedUser: LoggedInUser = {
+            ...user,
+            permission: userTeam.permission
+        };
+
+        socket.join(`board-presentation:${boardId}`);
+        presentationState.participants.set(socket.id, enhancedUser);
+
+        console.log(`User ${user.username} joined presentation for board ${boardId}`);
+        board.setPresentationState(presentationState);
+        await this.boardRepository.save(board);
+
+        const participantsArray = Array.from(presentationState.participants.entries()).map(([socketId, user]) => ({
+            socketId,
+            enhancedUser: user,
+        }));
+
+        // Notify others about the new participant
+        socket.to(`board:${boardId}`).emit("presentation-users", participantsArray);
+        socket.emit("presentation-users", participantsArray);
+        // socket.emit("join-presentation", {
+        //     participants: participantsArray,
+        //     presentation: presentationState.presentation
+        // });
+
+    }
+
+    private async handleLeavePresentation(socket: Socket, boardId: number, user: LoggedInUser) {
+        const validation = await this.validateBoardAccess(boardId, user.id);
+        if (!validation) {
+            socket.emit("error", { message: "Unauthorized access or board not found" });
+            return;
+        }
+
+        const { board } = validation;
+        const presentationState = this.getPresentationState(boardId);
+        const leavingUser = presentationState.participants.get(socket.id);
+
+        if (!leavingUser) {
+            return;
+        }
+
+        presentationState.participants.delete(socket.id);
+        board.setPresentationState(presentationState);
+        await this.boardRepository.save(board);
+        socket.leave(`board-presentation:${boardId}`);
+
+        // If presenter is leaving, end the presentation
+        if (presentationState.presenter?.id === leavingUser.id) {
+            await this.handleEndPresentation(socket, boardId);
+        } else {
+            socket.to(`board-presentation:${boardId}`).emit("leave-presentation", socket.id);
+        }
+
+    }
+
+    private async handleEndPresentation(socket: Socket, boardId: number) {
+        const presentationState = this.getPresentationState(boardId);
+        const board = await this.boardRepository.findOne({
+            where: { id: boardId },
+            relations: ["team"],
+        });
+
+        if (!board) {
+            return;
+        }
+
+        // Clear presentation state
+        board.presentation = null;
+        await this.boardRepository.save(board);
+
+        // Notify all participants
+        socket.to(`board-presentation:${boardId}`).emit("end-presentation");
+        socket.to(`board:${boardId}`).emit("end-presentation");
+
+        console.log(`Presentation ended for board ${boardId} by ${presentationState.presenter?.id}`);
+        // Clear presentation state
+        this.presentationStates.set(boardId, this.createPresentationState());
+
+    }
+
+    private async handleDragWhilePresentation(socket: Socket, boardId: number, data: StageConfig) {
+        const presentationState = this.getPresentationState(boardId);
+        const user = presentationState.participants.get(socket.id);
+
+        if (!user || user.id !== presentationState.presenter?.id) {
+            socket.emit("error", { message: "Only the presenter can control the presentation" });
+            return;
+        }
+
+        presentationState.presentation = data;
+
+        // Save state to database
+        const board = await this.boardRepository.findOne({ where: { id: boardId } });
+        if (board) {
+            board.setPresentationState(presentationState);
+            await this.boardRepository.save(board);
+        }
+
+        // Broadcast to all participants
+        socket.to(`board-presentation:${boardId}`).emit("drag-while-presenting", data);
     }
 }

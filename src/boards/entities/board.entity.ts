@@ -3,7 +3,8 @@ import { Shape } from "src/shapes/entities/shape.entity";
 import { Team } from "src/teams/entities/team.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { UserBoard } from "./user_board.entity";
-import { Presentation } from "src/shared/types/board-socket.type";
+import { LoggedInUser, Presentation, StageConfig } from "src/shared/types/board-socket.type";
+import { PresentationState } from "src/gateway/board.gateway";
 
 @Entity({ name: "boards" })
 export class Board {
@@ -19,7 +20,11 @@ export class Board {
         type: "jsonb",
         nullable: true
     })
-    presentation: Presentation | null = null;
+    presentation: {
+        presenter: LoggedInUser | null;
+        presentation: StageConfig | null;
+        participants: { socketId: string; user: LoggedInUser }[];
+    } | null;
 
     @ManyToOne(() => Team, (team) => team.boards)
     team: Team
@@ -35,5 +40,20 @@ export class Board {
 
     constructor(partial: Partial<Board>) {
         Object.assign(this, partial)
+    }
+
+    setPresentationState(state: PresentationState) {
+        if (state) {
+            this.presentation = {
+                presenter: state.presenter,
+                presentation: state.presentation,
+                participants: Array.from(state.participants.entries()).map(([socketId, user]) => ({
+                    socketId,
+                    user
+                }))
+            };
+        } else {
+            this.presentation = null;
+        }
     }
 }

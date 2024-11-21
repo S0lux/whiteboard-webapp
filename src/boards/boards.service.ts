@@ -49,7 +49,10 @@ export class BoardsService {
   }
 
   async getBoardById(id: string) {
-    return await this.boardRepository.findOne({ where: { id: Number(id) }, relations: ["paths", "shapes"] });
+    return await this.boardRepository.findOne({
+      where: { id: Number(id) },
+      relations: ["paths", "shapes"]
+    });
   }
 
   async getUserBoard(boardId: number, userId: number) {
