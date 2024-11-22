@@ -351,15 +351,14 @@ export class BoardGateWay implements OnModuleInit {
         presentationState.presenter = user;
         presentationState.presentation = data;
 
+
+        socket.join(`board-presentation:${boardId}`);
         // Save presentation state to database
         board.setPresentationState(presentationState)
         await this.boardRepository.save(board);
 
         // Notify all users in the board
         socket.to(`board:${boardId}`).emit("start-presentation", presentationState);
-
-        // Add presenter as first participant
-        // await this.handleJoinPresentation(socket, user, boardId);
     }
 
     private async handleJoinPresentation(socket: Socket, user: LoggedInUser, boardId: number) {
@@ -397,10 +396,6 @@ export class BoardGateWay implements OnModuleInit {
         // Notify others about the new participant
         socket.to(`board:${boardId}`).emit("presentation-users", participantsArray);
         socket.emit("presentation-users", participantsArray);
-        // socket.emit("join-presentation", {
-        //     participants: participantsArray,
-        //     presentation: presentationState.presentation
-        // });
 
     }
 
@@ -416,20 +411,23 @@ export class BoardGateWay implements OnModuleInit {
         const leavingUser = presentationState.participants.get(socket.id);
 
         if (!leavingUser) {
+            socket.emit("error", { message: "User not in the presentation" });
             return;
         }
 
         presentationState.participants.delete(socket.id);
+        console.log("After delete", presentationState.participants);
         board.setPresentationState(presentationState);
         await this.boardRepository.save(board);
+        console.log(`User ${leavingUser.username} left presentation for board ${boardId}`);
+        const participantsArray = Array.from(presentationState.participants.entries()).map(([socketId, user]) => ({
+            socketId,
+            enhancedUser: user,
+        }));
+        socket.to(`board:${boardId}`).emit("leave-presentation", participantsArray);
+        socket.to(`board-presentation:${boardId}`).emit("leave-presentation", participantsArray);
         socket.leave(`board-presentation:${boardId}`);
 
-        // If presenter is leaving, end the presentation
-        if (presentationState.presenter?.id === leavingUser.id) {
-            await this.handleEndPresentation(socket, boardId);
-        } else {
-            socket.to(`board-presentation:${boardId}`).emit("leave-presentation", socket.id);
-        }
 
     }
 
@@ -447,6 +445,8 @@ export class BoardGateWay implements OnModuleInit {
         // Clear presentation state
         board.presentation = null;
         await this.boardRepository.save(board);
+
+        socket.leave(`board-presentation:${boardId}`)
 
         // Notify all participants
         socket.to(`board-presentation:${boardId}`).emit("end-presentation");
