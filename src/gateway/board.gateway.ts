@@ -426,6 +426,7 @@ export class BoardGateWay implements OnModuleInit {
         }));
         socket.to(`board:${boardId}`).emit("leave-presentation", participantsArray);
         socket.to(`board-presentation:${boardId}`).emit("leave-presentation", participantsArray);
+        socket.emit("leave-presentation", participantsArray);
         socket.leave(`board-presentation:${boardId}`);
 
 
@@ -462,10 +463,10 @@ export class BoardGateWay implements OnModuleInit {
         const presentationState = this.getPresentationState(boardId);
         const user = presentationState.participants.get(socket.id);
 
-        if (!user || user.id !== presentationState.presenter?.id) {
-            socket.emit("error", { message: "Only the presenter can control the presentation" });
-            return;
-        }
+        // if (user || user.id !== presentationState.presenter?.id) {
+        //     socket.emit("error", { message: "Only the presenter can control the presentation" });
+        //     return;
+        // }
 
         presentationState.presentation = data;
 
@@ -475,6 +476,8 @@ export class BoardGateWay implements OnModuleInit {
             board.setPresentationState(presentationState);
             await this.boardRepository.save(board);
         }
+
+        console.log(`Presenter ${socket.id} dragged while presenting for board ${boardId}`);
 
         // Broadcast to all participants
         socket.to(`board-presentation:${boardId}`).emit("drag-while-presenting", data);
