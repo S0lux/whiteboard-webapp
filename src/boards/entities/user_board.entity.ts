@@ -4,6 +4,7 @@ import { Team } from "src/teams/entities/team.entity";
 import { User } from "src/users/entities/user.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { Board } from "./board.entity";
+import { Permission } from "src/shared/enums/permission.enum";
 
 @Entity({ name: "user_boards" })
 export class UserBoard {
@@ -22,6 +23,9 @@ export class UserBoard {
         stageX: 0,
         stageY: 0,
     };
+
+    @Column()
+    permission: Permission = Permission.VIEW;
 
     constructor(partial: Partial<UserBoard>) {
         Object.assign(this, partial)

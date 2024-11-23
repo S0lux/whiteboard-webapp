@@ -10,6 +10,7 @@ import { UserTeam } from "src/teams/entities/user-team-relation.entity";
 import { Board } from "./entities/board.entity";
 import { Team } from "src/teams/entities/team.entity";
 import { UserBoard } from "./entities/user_board.entity";
+import { Permission } from "src/shared/enums/permission.enum";
 
 @Injectable()
 export class BoardsService {
@@ -44,14 +45,17 @@ export class BoardsService {
     if (!team) {
       throw new BadRequestException("Team not found")
     }
-    const newBoard = new Board({ name: data.name, team });
+    const newBoard = new Board({ name: data.name, team, owner: user });
     await this.boardRepository.save(newBoard);
+
+    const userBoard = new UserBoard({ user, board: newBoard, permission: Permission.EDIT });
+    await this.userBoardRepository.save(userBoard);
   }
 
   async getBoardById(id: string) {
     return await this.boardRepository.findOne({
       where: { id: Number(id) },
-      relations: ["paths", "shapes"]
+      relations: ["paths", "shapes", "owner"]
     });
   }
 
@@ -59,10 +63,31 @@ export class BoardsService {
     let userBoard = await this.userBoardRepository.findOne({
       where: { board: { id: boardId }, user: { id: userId } }
     });
-    if (!userBoard) {
-      userBoard = new UserBoard({})
-    }
     return userBoard;
+  }
+
+  async getUsersBoard(boardId: number) {
+    const usersBoard = await this.userBoardRepository.find({
+      where: { board: { id: boardId } }, relations: ["user"]
+    });
+    return usersBoard.map(userBoard => {
+      return {
+        user: userBoard.user,
+        data: userBoard.data,
+        permission: userBoard.permission
+      }
+    });
+  }
+
+  async updateUserBoardPermission(boardId: number, userId: number, permission: Permission) {
+    let userBoard = await this.userBoardRepository.findOne({
+      where: { board: { id: boardId }, user: { id: userId } }
+    });
+    if (!userBoard) {
+      throw new BadRequestException("User is not a member of this board");
+    }
+    userBoard.permission = permission;
+    await this.userBoardRepository.save(userBoard);
   }
 
 }

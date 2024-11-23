@@ -327,7 +327,7 @@ export class TeamsService {
 
   async getTeamBoards(teamId: number) {
     const teamBoards = await this.boardRepository.find({
-      where: { team: { id: teamId } },
+      where: { team: { id: teamId }, isDeleted: false },
     });
 
     return teamBoards;

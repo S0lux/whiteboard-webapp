@@ -6,6 +6,7 @@ import { Board } from "src/boards/entities/board.entity";
 import { UserBoard } from "src/boards/entities/user_board.entity";
 import { Path } from "src/paths/entities/path.entity";
 import { Shape } from "src/shapes/entities/shape.entity";
+import { Permission } from "src/shared/enums/permission.enum";
 import { LoggedInUser, Presentation, StageConfig, UserJoinedPayload } from "src/shared/types/board-socket.type";
 import { Team } from "src/teams/entities/team.entity";
 import { UserTeam } from "src/teams/entities/user-team-relation.entity";
@@ -80,6 +81,11 @@ export class BoardGateWay implements OnModuleInit {
                     await this.handleDragWhilePresentation(socket, payload.boardId, payload.data);
                 });
 
+                socket.on("update-user-permission", async (payload: { boardId: number, userId: number, permission: Permission }) => {
+                    await this.updateUserPermission(socket, payload);
+                }
+                );
+
                 socket.on("disconnect", async () => {
                     await this.handleDisconnect(socket);
                 });
@@ -91,6 +97,30 @@ export class BoardGateWay implements OnModuleInit {
             }
         });
     }
+
+    private async updateUserPermission(socket: Socket, payload: { boardId: number, userId: number, permission: Permission }) {
+        let userBoard = await this.userBoardRepository.findOne({
+            where: { board: { id: payload.boardId }, user: { id: payload.userId } }
+        });
+        if (!userBoard) {
+            throw new Error("User is not a member of this board");
+        }
+        userBoard.permission = payload.permission;
+        await this.userBoardRepository.save(userBoard);
+        const rawUsersBoard = await this.userBoardRepository.find({
+            where: { board: { id: payload.boardId } }, relations: ["user"]
+        });
+        const usersBoard = rawUsersBoard.map(userBoard => {
+            return {
+                user: userBoard.user,
+                data: userBoard.data,
+                permission: userBoard.permission
+            }
+        });
+        socket.to(`board:${payload.boardId}`).emit("users-board", usersBoard);
+        socket.emit("users-board", usersBoard);
+    }
+
 
     private async handleDragBoard(socket: Socket, payload: { boardId: number, data: any }) {
         const board = await this.boardRepository.findOne({

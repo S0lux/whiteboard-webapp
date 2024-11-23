@@ -5,6 +5,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGene
 import { UserBoard } from "./user_board.entity";
 import { LoggedInUser, Presentation, StageConfig } from "src/shared/types/board-socket.type";
 import { PresentationState } from "src/gateway/board.gateway";
+import { User } from "src/users/entities/user.entity";
 
 @Entity({ name: "boards" })
 export class Board {
@@ -35,8 +36,15 @@ export class Board {
     @OneToMany(() => Path, (path) => path.board)
     paths: Path[]
 
+
+    @ManyToOne(() => User, user => user.ownedBoards)
+    owner: User;
+
     @OneToMany(() => UserBoard, (userBoard) => userBoard.board)
     userBoards: UserBoard[];
+
+    @Column()
+    isDeleted: boolean = false;
 
     constructor(partial: Partial<Board>) {
         Object.assign(this, partial)

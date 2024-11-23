@@ -123,7 +123,6 @@ export class TeamsController {
   @UseGuards(TeamRoleGuard)
   @Get(":teamId/members")
   async getMembers(@Param("teamId", ParseIntPipe) teamId: number) {
-    console.log(teamId)
     return await this.teamsService.getMembers(teamId);
   }
 
