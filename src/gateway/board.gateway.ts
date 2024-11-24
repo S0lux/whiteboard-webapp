@@ -81,7 +81,7 @@ export class BoardGateWay implements OnModuleInit {
                     await this.handleDragWhilePresentation(socket, payload.boardId, payload.data);
                 });
 
-                socket.on("update-user-permission", async (payload: { boardId: number, userId: number, permission: Permission }) => {
+                socket.on("update-user-board-permission", async (payload: { boardId: number, userId: number, permission: Permission }) => {
                     await this.updateUserPermission(socket, payload);
                 }
                 );
@@ -107,6 +107,7 @@ export class BoardGateWay implements OnModuleInit {
         }
         userBoard.permission = payload.permission;
         await this.userBoardRepository.save(userBoard);
+        console.log(`User ${payload.userId} permission updated to ${payload.permission} for board ${payload.boardId}`);
         const rawUsersBoard = await this.userBoardRepository.find({
             where: { board: { id: payload.boardId } }, relations: ["user"]
         });
@@ -117,8 +118,9 @@ export class BoardGateWay implements OnModuleInit {
                 permission: userBoard.permission
             }
         });
-        socket.to(`board:${payload.boardId}`).emit("users-board", usersBoard);
-        socket.emit("users-board", usersBoard);
+
+        socket.to(`board:${payload.boardId}`).emit("users-board", { usersBoard, userId: payload.userId, permission: payload.permission });
+        socket.emit("users-board", { usersBoard, userId: payload.userId, permission: payload.permission });
     }
 
 
