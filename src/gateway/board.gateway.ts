@@ -456,9 +456,9 @@ export class BoardGateWay implements OnModuleInit {
             socketId,
             enhancedUser: user,
         }));
-        socket.to(`board:${boardId}`).emit("leave-presentation", participantsArray);
-        socket.to(`board-presentation:${boardId}`).emit("leave-presentation", participantsArray);
-        socket.emit("leave-presentation", participantsArray);
+        socket.to(`board:${boardId}`).emit("presentation-users", participantsArray);
+        socket.to(`board-presentation:${boardId}`).emit("presentation-users", participantsArray);
+        socket.emit("presentation-users", participantsArray);
         socket.leave(`board-presentation:${boardId}`);
 
 
