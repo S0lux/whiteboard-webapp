@@ -49,13 +49,46 @@ export class BoardsService {
     await this.boardRepository.save(newBoard);
 
     const userBoard = new UserBoard({ user, board: newBoard, permission: Permission.EDIT });
+
     await this.userBoardRepository.save(userBoard);
+
+    const rawUsersBoard = await this.userTeamRepository.find({
+      where: { team: team }, relations: ["user"]
+    });
+
+    for (const userTeam of rawUsersBoard) {
+      if (userTeam.user.id !== user.id) {
+        const userBoard = new UserBoard({ user: userTeam.user, board: newBoard, permission: Permission.VIEW });
+        await this.userBoardRepository.save(userBoard);
+      }
+    }
+
+  }
+
+  async inviteMemberToBoard(boardId: number, userId: number, permission: Permission) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId }
+    });
+    if (!user) {
+      throw new BadRequestException("User not found");
+    }
+
+    const board = await this.boardRepository.findOne({
+      where: { id: boardId }
+    });
+    if (!board) {
+      throw new BadRequestException("Board not found");
+    }
+
+    const userBoard = new UserBoard({ user, board, permission });
+    await this.userBoardRepository.save(userBoard);
+    console.log(userBoard);
   }
 
   async getBoardById(id: string) {
     return await this.boardRepository.findOne({
       where: { id: Number(id) },
-      relations: ["paths", "shapes", "owner"]
+      relations: ["paths", "shapes", "owner", "team"]
     });
   }
 

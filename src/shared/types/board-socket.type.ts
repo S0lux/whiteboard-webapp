@@ -10,6 +10,7 @@ export type LoggedInUser = {
     createdAt: string;
     accountPlan: Plan;
     permission?: Permission;
+    color?: string;
 };
 
 export type UserJoinedPayload = {

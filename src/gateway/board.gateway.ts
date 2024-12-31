@@ -31,10 +31,23 @@ export class BoardGateWay implements OnModuleInit {
 
     @WebSocketServer()
     server: Server;
-
+    private userSocketMap = new Map<number, string>();
     boardUsers = new Map<number, Map<string, LoggedInUser>>();
     presentationStates = new Map<number, PresentationState>();
 
+    private userColors = new Map<string, string>();
+    private readonly colors = [
+        '#EF4444', '#F59E0B', '#10B981', '#3B82F6',
+        '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6'
+    ];
+    private getRandomColor(): string {
+        const unusedColors = this.colors.filter(
+            color => !Array.from(this.userColors.values()).includes(color)
+        );
+        return unusedColors.length > 0
+            ? unusedColors[Math.floor(Math.random() * unusedColors.length)]
+            : this.colors[Math.floor(Math.random() * this.colors.length)];
+    }
     currentBoardId: number | null = null;
 
     onModuleInit() {
@@ -85,6 +98,10 @@ export class BoardGateWay implements OnModuleInit {
                     await this.updateUserPermission(socket, payload);
                 }
                 );
+
+                socket.on("cursor-move", async (payload: { boardId: number, position: { x: number, y: number } }) => {
+                    socket.to(`board:${payload.boardId}`).emit("cursor-move", { socketId: socket.id, position: payload.position, color: this.userColors.get(socket.id) });
+                });
 
                 socket.on("disconnect", async () => {
                     await this.handleDisconnect(socket);
@@ -150,6 +167,16 @@ export class BoardGateWay implements OnModuleInit {
     }
 
     private async handleJoinBoard(socket: Socket, user: LoggedInUser, boardId: number) {
+        const existingSocketId = this.userSocketMap.get(user.id);
+        if (existingSocketId && existingSocketId !== socket.id) {
+            const existingSocket = this.server.sockets.sockets.get(existingSocketId);
+            if (existingSocket) {
+                await this.handleDisconnect(existingSocket);
+                existingSocket.disconnect(true);
+            }
+        }
+
+        this.userSocketMap.set(user.id, socket.id);
         const board = await this.boardRepository.findOne({
             where: { id: boardId },
             relations: ["team"],
@@ -180,9 +207,14 @@ export class BoardGateWay implements OnModuleInit {
             return;
         }
 
+        if (!this.userColors.has(socket.id)) {
+            this.userColors.set(socket.id, this.getRandomColor());
+        }
+
         const enhancedUser: LoggedInUser = {
             ...user,
-            permission: userTeam.permission
+            permission: userTeam.permission,
+            color: this.userColors.get(socket.id)
         };
 
         this.currentBoardId = boardId;
@@ -287,33 +319,37 @@ export class BoardGateWay implements OnModuleInit {
     }
 
     private async handleDisconnect(socket: Socket) {
-        if (this.currentBoardId === null) {
-            return;
-        }
-        // Remove user from boardUsers map
+        if (this.currentBoardId === null) return;
+
         const boardUsers = this.boardUsers.get(this.currentBoardId);
         const disconnectedUser = boardUsers?.get(socket.id);
-        if (boardUsers) {
-            boardUsers.delete(socket.id);
-        }
-        const boardId = this.currentBoardId;
-        const presentationState = this.presentationStates.get(boardId);
-        if (presentationState) {
-            // Check if the user is the presenter
-            if (presentationState.presenter?.id === disconnectedUser?.id) {
-                console.log(`Presenter ${disconnectedUser?.id} disconnected from board ${boardId}`);
 
-                // await this.handleEndPresentation(socket, boardId);
-            } else {
-                // Remove participant from the presentation
-                presentationState.participants.delete(socket.id);
+        if (disconnectedUser) {
+            // Clean up user from all maps
+            this.userSocketMap.delete(disconnectedUser.id);
+            this.userColors.delete(socket.id);
+            const presentationState = this.presentationStates.get(this.currentBoardId);
+            if (presentationState) {
+                if (presentationState.presenter?.id === disconnectedUser.id) {
+                    // Presenter disconnected - end presentation
+                    await this.handleEndPresentation(socket, this.currentBoardId);
+                } else {
+                    // Participant disconnected
+                    presentationState.participants.delete(socket.id);
+                    const participantsArray = Array.from(presentationState.participants.entries())
+                        .map(([socketId, user]) => ({
+                            socketId,
+                            enhancedUser: user,
+                        }));
 
-                // Notify other participants about the user leaving
-                // await this.handleLeavePresentation(socket, boardId, disconnectedUser!);
+                    socket.to(`board:${this.currentBoardId}`).emit("presentation-users", participantsArray);
+                }
             }
-        }
 
-        socket.to(`board:${this.currentBoardId}`).emit("user-left", socket.id);
+            // Remove from board users
+            boardUsers?.delete(socket.id);
+            socket.to(`board:${this.currentBoardId}`).emit("user-left", socket.id);
+        }
     }
 
 

@@ -36,6 +36,12 @@ export class BoardsController {
     return await this.boardsService.getBoardById(id)
   }
 
+  @UseGuards(AuthenticatedGuard)
+  @Post(':id/members')
+  async inviteMemberToBoard(@Param('id') id: string, @Body() body: { userId: number, permission: Permission }) {
+    return await this.boardsService.inviteMemberToBoard(Number(id), body.userId, body.permission)
+  }
+
   // @UseGuards(AuthenticatedGuard)
   // @Get(':id/user-boards')
   // async getUserBoard(@Param('id') id: string, @AuthUser() user) {
