@@ -1,7 +1,7 @@
 import { Path } from "src/paths/entities/path.entity";
 import { Shape } from "src/shapes/entities/shape.entity";
 import { Team } from "src/teams/entities/team.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { BeforeInsert, Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { UserBoard } from "./user_board.entity";
 import { LoggedInUser, Presentation, StageConfig } from "src/shared/types/board-socket.type";
 import { PresentationState } from "src/gateway/board.gateway";
@@ -46,6 +46,9 @@ export class Board {
     @Column()
     isDeleted: boolean = false;
 
+    @Column({ nullable: true })
+    logo: string;
+
     constructor(partial: Partial<Board>) {
         Object.assign(this, partial)
     }
@@ -62,6 +65,12 @@ export class Board {
             };
         } else {
             this.presentation = null;
+        }
+    }
+    @BeforeInsert()
+    addDefaultLogo() {
+        if (!this.logo) {
+            this.logo = `https://api.dicebear.com/9.x/shapes/svg?seed=${this.name.replace(/\s+/g, '')}`;
         }
     }
 }

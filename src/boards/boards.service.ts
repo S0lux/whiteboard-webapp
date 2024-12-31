@@ -37,9 +37,6 @@ export class BoardsService {
     if (!userTeam) {
       throw new BadRequestException("User is not a member of any team");
     }
-    if (userTeam.role !== "OWNER") {
-      throw new BadRequestException("Only team owners can create boards");
-    }
 
     const team = await this.teamRepository.findOne({ where: { id: data.teamId } })
     if (!team) {
@@ -123,4 +120,7 @@ export class BoardsService {
     await this.userBoardRepository.save(userBoard);
   }
 
+  async deleteBoard(boardId: number) {
+    await this.boardRepository.update({ id: boardId }, { isDeleted: true });
+  }
 }

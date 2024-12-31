@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -58,5 +59,11 @@ export class BoardsController {
   async updateUsersBoard(@Param('id') id: string, @Body() body: { userId: number, permission: Permission }) {
     console.log(body);
     return await this.boardsService.updateUserBoardPermission(Number(id), body.userId, body.permission);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Delete(':id')
+  async deleteBoard(@Param('id') id: string) {
+    return await this.boardsService.deleteBoard(Number(id));
   }
 }
