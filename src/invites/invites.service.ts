@@ -58,13 +58,14 @@ export class InvitesService {
         receipientName: invite.recipient.username,
         senderId: invite.sender.id,
         teamId: invite.team.id,
+        teamName: invite.team.name,
       });
     } else {
       this.eventEmitter.emit("invite.rejected", {
-        recipientId: invite.recipient.id,
         receipientName: invite.recipient.username,
         senderId: invite.sender.id,
         teamId: invite.team.id,
+        teamName: invite.team.name,
       });
     }
 
