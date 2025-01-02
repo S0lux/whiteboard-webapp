@@ -100,7 +100,6 @@ export class BoardGateWay implements OnModuleInit {
                 );
 
                 socket.on("cursor-move", async (payload: { boardId: number, position: { x: number, y: number }, stagePosition: { x: number, y: number }, stageScale: number }) => {
-                    console.log(payload);
                     socket.to(`board:${payload.boardId}`).emit("cursor-move", { socketId: socket.id, position: payload.position, color: this.userColors.get(socket.id), stagePosition: payload.stagePosition, stageScale: payload.stageScale });
                 });
 
