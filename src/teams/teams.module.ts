@@ -11,10 +11,11 @@ import { Invite } from "../invites/entities/invite.entity";
 import { EmailModule } from "src/email/email.module";
 import { NotificationsModule } from "src/notifications/notifications.module";
 import { Board } from "src/boards/entities/board.entity";
+import { UserBoard } from "src/boards/entities/user_board.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Team, UserTeam, Invite, Board]),
+    TypeOrmModule.forFeature([User, Team, UserTeam, Invite, Board, UserBoard]),
     UploaderModule,
     UsersModule,
     EmailModule,
