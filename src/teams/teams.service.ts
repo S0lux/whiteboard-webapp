@@ -279,7 +279,20 @@ export class TeamsService {
     }
 
     await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: memberId } });
-    await this.userBoardRepository.delete({ board: { team: { id: teamId } }, user: { id: memberId } });
+    const userBoards = await this.userBoardRepository.find({
+      relations: ['board', 'board.team'],
+      where: {
+        board: {
+          team: {
+            id: teamId
+          }
+        },
+        user: {
+          id: memberId
+        }
+      }
+    });
+    await this.userBoardRepository.remove(userBoards);
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
     this.eventEmitter.emit("team.removedMember", {
