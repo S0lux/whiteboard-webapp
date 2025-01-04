@@ -21,6 +21,7 @@ import { Permission } from "src/shared/enums/permission.enum";
 import { Board } from "src/boards/entities/board.entity";
 import { UpdatePermissionDto } from "./dtos/UpdatePermissionDto";
 import { permission } from "process";
+import { UserBoard } from "src/boards/entities/user_board.entity";
 
 @Injectable()
 export class TeamsService {
@@ -38,6 +39,8 @@ export class TeamsService {
     private readonly eventEmitter: EventEmitter2,
     @InjectRepository(Board)
     private readonly boardRepository: Repository<Board>,
+    @InjectRepository(UserBoard) 
+    private readonly userBoardRepository: Repository<UserBoard>,
   ) { }
 
   async createTeam(data: CreateTeamDto, creator: { id: number }) {
@@ -276,6 +279,7 @@ export class TeamsService {
     }
 
     await this.userTeamRepository.delete({ team: { id: teamId }, user: { id: memberId } });
+    await this.userBoardRepository.delete({ board: { team: { id: teamId } }, user: { id: memberId } });
     const team = await this.teamRepository.findOne({ where: { id: teamId } });
 
     this.eventEmitter.emit("team.removedMember", {
